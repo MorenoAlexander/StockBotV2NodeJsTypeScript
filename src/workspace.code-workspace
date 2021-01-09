@@ -1,0 +1,27 @@
+{
+	"emeraldwalk.runonsave": {
+		"commands" :[
+			{
+				"match": ".*",
+				"isAsync": true,
+				"cmd": "npm run build"
+			}
+		]
+	},
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"emeraldwalk.runonsave": {
+			"commands" :[
+				{
+					"match": ".*",
+					"isAsync": true,
+					"cmd": "npm run build"
+				}
+			]
+		}
+	}
+}
