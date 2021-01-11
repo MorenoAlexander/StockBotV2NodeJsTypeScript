@@ -43,7 +43,6 @@ export async function GetBalance(user : User) : Promise<Number>{
 
 
 function initFirebase() : firebase.app.App {
-
     console.log(firebaseInit)
     return firebase.initializeApp(firebaseInit)
 }
