@@ -4,25 +4,25 @@ export default interface Quote {
     /**
      * Current price
      */
-    c: Number,
+    c: number,
     /**
      * High
      */
-    h : Number,
+    h : number,
     /**
      * Low
      */
-    l : Number,
+    l : number,
     /**
      * Open
      */
-    o : Number,
+    o : number,
     /**
      * Previous close
      */
-    pc : Number,
+    pc : number,
     /**
      * Time
      */
-    t : Number,
+    t : number,
 }

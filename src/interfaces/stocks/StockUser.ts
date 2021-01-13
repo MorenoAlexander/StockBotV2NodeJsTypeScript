@@ -1,4 +1,4 @@
-export default interface {
+export default interface StockUser {
     ID : string,
     GUID : string,
     Cash : number,

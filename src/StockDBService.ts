@@ -1,22 +1,43 @@
 import { Message, User } from "discord.js";
-import { firebaseInit} from '../serverconfig.json'
+import { firebaseInit,finnhubApiKey} from '../serverconfig.json'
 import Quote from "./interfaces/stocks/quote";
 import StockLot from "./interfaces/stocks/StockLot";
 import {v4 as uuidv4 } from 'uuid'
 import firebase from 'firebase'
 import StockUser from "./interfaces/stocks/StockUser";
+import util from 'util'
+import { consoleTestResultsHandler } from "tslint/lib/test";
+const finnhub = require('finnhub')
+
+const finnhubClient = initFinnhub();
+
+
 
 const FirebaseApp = initFirebase()
 
+ // const StockQuoteCache = new Map<string,Quote>();
+
+
+
+
+export  async function GetQuote(SYMBOL : string) {
+
+        let data = null
+        const request = (await (finnhubClient.quote(SYMBOL)))
+        data = JSON.parse((await request).res.text) as Quote;
+        return data;
+}
+
+
+
 export async function BuyStock(user : User, quote : Quote, quotesymbol : string, orderCount : number)  : Promise<string>{
     try {
-        var newStockLot = {ID : user.id, Date: new Date().toUTCString(), quantity: orderCount, priceBought: quote.c, symbol: quotesymbol, GUID: user.avatar } as StockLot;
-        var userData = (await FirebaseApp.database().ref(`users/${user.id}`).once('value')).val() as StockUser;
+        const newStockLot = {ID : user.id, Date: new Date().toUTCString(), quantity: orderCount, priceBought: quote.c, symbol: quotesymbol, GUID: user.avatar } as StockLot;
+        const userData = (await FirebaseApp.database().ref(`users/${user.id}`).once('value')).val() as StockUser;
 
-        var  balance = userData.Cash;
-        
-        var cost = (newStockLot.priceBought * newStockLot.quantity)
-        console.log(`${newStockLot.priceBought} * ${newStockLot.quantity} => cost: ${cost}`);
+        let  balance = userData.Cash;
+        const cost = (newStockLot.priceBought * newStockLot.quantity)
+
         if (balance >= cost ) {
             balance -= cost;
             await FirebaseApp.database().ref(`users/${user.id}/Cash`).set(balance);
@@ -35,13 +56,64 @@ export async function BuyStock(user : User, quote : Quote, quotesymbol : string,
     }
 }
 
+/**
+ * Fetches user's stocks, calculates the total portfolio value &
+ * @param user
+ */
+export async function CalculatePortforlio(user : User) : Promise<string> {
 
-export async function GetBalance(user : User) : Promise<Number>{
-    
+    const data = (await FirebaseApp.database().ref("stocks").orderByChild("ID").startAt(user.id).once('value')).val()
+
+    if(data  == null) {
+        return `No data found`
+    }
+    let userStocks = (Object.values(data) as StockLot[]).sort((a,b) => {
+        if (a.symbol === b.symbol){
+            return 0;
+        }
+        else if(a.symbol > b.symbol ) {
+            return 1;
+
+        }
+        return -1;
+    })
+    let marketVal =  0.0;
+    let costBasis = 0.0;
+
+    let quote = null
+    let symbol = ""
+    let currentPrice = 0.0;
+    let i = 0
+    while( i< userStocks.length) {
+        if(symbol !==  userStocks[i].symbol){
+            quote = await GetQuote(userStocks[i].symbol);
+            currentPrice = quote.c
+            symbol = userStocks[i].symbol
+        }
+
+        marketVal += userStocks[i].quantity * currentPrice
+        costBasis += userStocks[i].priceBought * userStocks[i].quantity
+        i++
+
+    }
+
+    const PnL = ((marketVal - costBasis) / costBasis)*100;
+    //const PnLformatted = formatNumber
+
+    return `portfolio value is ${formatNumber(marketVal)} ${formatPercentage(PnL)}`
+}
+
+
+
+
+
+export async function GetBalance(user : User) : Promise<number>{
     return (await FirebaseApp.database().ref(`users/${user.id}/Cash`).once('value')).val();
 }
 
 
+
+// #### PRIVATE FUNCTIONS ####
 function initFirebase() : firebase.app.App {
     console.log(firebaseInit)
     return firebase.initializeApp(firebaseInit)
@@ -51,3 +123,23 @@ function initFirebase() : firebase.app.App {
 function formatNumber( num : number) {
     return `$${num.toFixed(2)}`
 }
+
+function formatPercentage(num : number) {
+    //(${(PnL >= 0) ? `+${PnL}` : PnL})
+    let formatted = num.toFixed(2)
+    return `(${num >= 0 ? `+${formatted}` : formatted }%)`
+}
+
+
+function initFinnhub() {
+    
+    const api_key = finnhub.ApiClient.instance.authentications['api_key'];
+    api_key.apiKey = finnhubApiKey
+    return new finnhub.DefaultApi()
+}
+
+
+
+
+
+ 

@@ -8,43 +8,44 @@ import {prefix} from '../serverconfig.json'
 import { isThrowStatement } from 'typescript';
 
 
-export class DiscordManager implements Manager {
-    DiscordClient : Discord.Client
+export class DiscordManager extends Discord.Client implements Manager {
+    commands : any;
     
     app : any
     
 
     public constructor(options : ClientOptions = {} ) {
-        this.DiscordClient = new Discord.Client(options);
+        super(options);
+        this.commands = null;
 
-        this.DiscordClient.on('ready', () => {
-            console.log(`Discord client established as ${(this.DiscordClient.user.tag != null) ? this.DiscordClient.user.tag : "No user" }` )
+        this.on('ready', () => {
+            console.log(`Discord client established as ${(this.user.tag != null) ? this.user.tag : "No user" }` )
 
         })
 
-        //commands
+        // commands
         this.collectCommands();
     }
 
     collectCommands() {
-        //Set up commands
-        this.DiscordClient.commands = new Discord.Collection();
+        // Set up commands
+        this.commands = null;
+        this.commands = new Discord.Collection();
 
         const commandFiles = fs.readdirSync(__dirname+'/commands').filter( file => file.endsWith('.js'));
         for(const file of commandFiles) {
             const commands = require(__dirname+`/commands/${file}`)
 
             for (const cmd of commands) {
-                this.DiscordClient.commands.set(cmd.name, cmd);
+                this.commands.set(cmd.name, cmd);
             }
-            
         }
     }
 
     logIn(apiKey : string) {
-        this.DiscordClient.login(apiKey).then((success) => {
+        this.login(apiKey).then((success : any) => {
             console.log(`Discord client connection successfully established: ${success}`);
-        },(rejected) => {
+        },(rejected : any) => {
             console.log(rejected);
         })
     }
@@ -63,7 +64,7 @@ export class DiscordManager implements Manager {
             console.log(req);
         })
 
-        this.DiscordClient.on('message', (message) => {
+        this.on('message', (message) => {
 
             if (!message.content.startsWith(prefix) || message.author.bot) return;
 
@@ -74,11 +75,11 @@ export class DiscordManager implements Manager {
             
 
             try {
-                if(!this.DiscordClient.commands.has(command)) {
+                if(!this.commands.has(command)) {
                     message.channel.send("No such command exists. Sorry!");
                     return;
                 }
-                this.DiscordClient.commands.get(command).execute(message, args);
+                this.commands.get(command).execute(message, args);
             }
             catch(error) {
                 console.log(error)
