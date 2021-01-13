@@ -57,12 +57,8 @@ export class DiscordManager extends Discord.Client implements Manager {
 
             res.send("<h1>DISCORD REGISTERED</h1>")
 
-            
-
         });
-        this.app.post('api/discord/gift', (req: any, res: any) => {
-            console.log(req);
-        })
+        this.app.post('api/discord/gift', (req: any, res: any) => {})
 
         this.on('message', (message) => {
 
