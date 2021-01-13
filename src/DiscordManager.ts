@@ -67,8 +67,6 @@ export class DiscordManager extends Discord.Client implements Manager {
             const args = message.content.slice(prefix.length).trim().split(/ +/);
 
             const command = args.shift().toLowerCase(); //tslint-disable-line
-            
-            
 
             try {
                 if(!this.commands.has(command)) {
