@@ -62,7 +62,7 @@ export async function BuyStock(user : User, quote : Quote, quotesymbol : string,
  */
 export async function CalculatePortforlio(user : User) : Promise<string> {
 
-    const data = (await FirebaseApp.database().ref("stocks").orderByChild("ID").startAt(user.id).once('value')).val()
+    const data = (await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(user.id).once('value')).val()
 
     if(data  == null) {
         return `No data found`
@@ -77,6 +77,7 @@ export async function CalculatePortforlio(user : User) : Promise<string> {
         }
         return -1;
     })
+
     let marketVal =  0.0;
     let costBasis = 0.0;
 
@@ -98,7 +99,6 @@ export async function CalculatePortforlio(user : User) : Promise<string> {
     }
 
     const PnL = ((marketVal - costBasis) / costBasis)*100;
-    //const PnLformatted = formatNumber
 
     return `portfolio value is ${formatNumber(marketVal)} ${formatPercentage(PnL)}`
 }
