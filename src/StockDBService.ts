@@ -5,8 +5,8 @@ import StockLot from "./interfaces/stocks/StockLot";
 import {v4 as uuidv4 } from 'uuid'
 import firebase from 'firebase'
 import StockUser from "./interfaces/stocks/StockUser";
-import util from 'util'
-import { consoleTestResultsHandler } from "tslint/lib/test";
+
+import {formatNumber, formatPercentage} from './utils/formatFunc'
 const finnhub = require('finnhub')
 
 const finnhubClient = initFinnhub();
@@ -56,27 +56,63 @@ export async function BuyStock(user : User, quote : Quote, quotesymbol : string,
     }
 }
 
+
+
+
+export async function SellStock(user : User, quotesymbol: string, orderCount : number) : Promise<string> {
+    try {
+        let stocksSold = 0.0;
+        let userData = await GetUserData(user.id);
+        let userStocks = await GetUserStocksAsMap(user.id, quotesymbol);
+        let quote = await GetQuote(quotesymbol)
+
+        userStocks.forEach(async ( stock : StockLot, key ) => {
+            if(stock.quantity >= (orderCount - stocksSold)) {
+                stock.quantity -= (orderCount - stocksSold)
+                stocksSold += (orderCount - stocksSold)
+            }
+            else if (stock.quantity <= (orderCount - stocksSold) && stock.quantity >= 1) {
+                stocksSold += stock.quantity;
+                stock.quantity = 0
+            }
+
+            if(stock.quantity <= 0) {
+                await FirebaseApp.database().ref(`stocks`).child(key).remove()
+            }
+            else {
+                await FirebaseApp.database().ref('stocks').child(key).set(stock);
+            }
+        })
+
+
+        let balance = userData.Cash
+        let credit = (stocksSold * quote.c)
+        balance += credit
+        await FirebaseApp.database().ref(`users/${user.id}`).child("Cash").set(balance)
+
+
+
+        return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(quote.c)}/sh for a total of ${credit}!`
+    }
+    catch(e) {
+        console.log(e);
+        return "Error"
+    }
+}
+
 /**
  * Fetches user's stocks, calculates the total portfolio value &
  * @param user
  */
 export async function CalculatePortforlio(user : User) : Promise<string> {
 
-    const data = (await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(user.id).once('value')).val()
+    // const data = (await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(user.id).once('value')).val()
 
-    if(data  == null) {
-        return `No data found`
-    }
-    let userStocks = (Object.values(data) as StockLot[]).sort((a,b) => {
-        if (a.symbol === b.symbol){
-            return 0;
-        }
-        else if(a.symbol > b.symbol ) {
-            return 1;
-
-        }
-        return -1;
-    })
+    // if(data  == null) {
+    //     return `No data found`
+    // }
+    let userStocks = await GetUserStocksAsArray(user.id);
+    //console.log(userStocks)
 
     let marketVal =  0.0;
     let costBasis = 0.0;
@@ -92,15 +128,15 @@ export async function CalculatePortforlio(user : User) : Promise<string> {
             symbol = userStocks[i].symbol
         }
 
-        marketVal += userStocks[i].quantity * currentPrice
-        costBasis += userStocks[i].priceBought * userStocks[i].quantity
+        marketVal += (userStocks[i].quantity * currentPrice)
+        costBasis += (userStocks[i].quantity * userStocks[i].priceBought)
         i++
 
     }
 
     const PnL = ((marketVal - costBasis) / costBasis)*100;
 
-    return `portfolio value is ${formatNumber(marketVal)} ${formatPercentage(PnL)}`
+    return `${user.username}'s portfolio value is ${formatNumber(marketVal)} ${formatPercentage(PnL)}`
 }
 
 
@@ -112,23 +148,60 @@ export async function GetBalance(user : User) : Promise<number>{
 }
 
 
+export async function ListStock(user : User) : Promise<string> {
+    let result = "```"
+
+    const userStocks = await GetUserStocksAsArray(user.id);
+
+    console.log(userStocks)
+    userStocks.forEach((stock)=> {
+        result += (`${stock.quantity} ${stock.symbol} @ ${formatNumber(stock.priceBought)}/share\n`)
+    })
+
+    result += "```"
+
+    return result;
+}
+
 
 // #### PRIVATE FUNCTIONS ####
+
+async function GetUserData(userId : string)  : Promise<StockUser> {
+    return (await FirebaseApp.database().ref(`users/${userId}`).once('value')).val();
+}
+
+async function GetUserStocksAsArray(userId : string) : Promise<StockLot[]> {
+    return (Object.values((await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(userId).once('value')).val()) as StockLot[]).sort(stockSortBySymbol)
+
+
+}
+/**
+ * creates a map of stocks with the same symbols. Primarily used by the Sell function
+ * @param userId 
+ * @param symbol 
+ */
+async function GetUserStocksAsMap(userId : string, symbol : string) : Promise<Map<string, StockLot>> {
+    let stocks = (await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(userId).once('value')).val()
+
+
+    let keys = Object.keys(stocks);
+    const map = new Map<string,StockLot>()
+    keys.forEach((key) => {
+        if(stocks[key].symbol === symbol)
+        {
+            map.set(key,stocks[key])
+        }
+    })
+    return map;
+}
+
+
 function initFirebase() : firebase.app.App {
     console.log(firebaseInit)
     return firebase.initializeApp(firebaseInit)
 }
 
-//refactor to a utils folder perhaps
-function formatNumber( num : number) {
-    return `$${num.toFixed(2)}`
-}
 
-function formatPercentage(num : number) {
-    //(${(PnL >= 0) ? `+${PnL}` : PnL})
-    let formatted = num.toFixed(2)
-    return `(${num >= 0 ? `+${formatted}` : formatted }%)`
-}
 
 
 function initFinnhub() {
@@ -139,7 +212,13 @@ function initFinnhub() {
 }
 
 
+const stockSortBySymbol = (a : StockLot,b : StockLot) => {
+    if (a.symbol === b.symbol){
+        return (a.priceBought > b.priceBought) ? 1 : -1;
+    }
+    else if(a.symbol > b.symbol ) {
+        return 1;
 
-
-
- 
+    }
+    return -1;
+}

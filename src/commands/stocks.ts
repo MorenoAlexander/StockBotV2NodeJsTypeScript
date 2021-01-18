@@ -1,7 +1,7 @@
 import {Message } from 'discord.js'
-
+import {formatNumber, formatPercentage} from './../utils/formatFunc'
 import Quote from "../interfaces/stocks/quote";
-import {BuyStock, GetBalance, GetQuote, CalculatePortforlio} from '../StockDBService'
+import {BuyStock, GetBalance, GetQuote, CalculatePortforlio, SellStock, ListStock} from '../StockDBService'
 
 
 
@@ -22,7 +22,7 @@ export = [
             const SYMBOL = args[0].toUpperCase();
 
             GetQuote(SYMBOL).then( (data : Quote) => {
-                message.channel.send(`${SYMBOL}: $${data.c}`)
+                message.channel.send(`${SYMBOL}: $${data.c} ${formatPercentage(((data.c - data.pc)/data.pc)*100)}`)
             });
         }
     },
@@ -52,7 +52,7 @@ export = [
         async execute(message : Message, args : string[]) {
             const messageResponse = (await message.reply(asyncResponse('stock')))
             const SYMBOL = args[0].toUpperCase();
-            const quantity = parseInt(args[1],2);
+            const quantity = parseInt(args[1]);
 
             const quote = await GetQuote(SYMBOL)
 
@@ -62,6 +62,29 @@ export = [
             return;
         }
     },
+    {
+        name:'sell',
+        description: 'Sell a stock',
+        async execute(message : Message, args : string[]) {
+            const messageResponse = (await message.reply(asyncResponse('SellOrder')))
+            const SYMBOL = args[0].toUpperCase();
+            const quantity = parseInt(args[1],2)
+            const result = await SellStock(message.author,SYMBOL,quantity)
+
+            messageResponse.edit(result);
+        }
+    },
+    {
+        name: 'list',
+        description: 'Lists the stocks/crypto in your portfolio',
+        async execute(message : Message, args : string[]) {
+            const messageResponse = (await message.reply(asyncResponse(asyncResponse('stock list'))))
+
+            const result = await ListStock(message.author)
+
+            messageResponse.edit(result)
+        }
+    }
 ]
 
 
@@ -70,9 +93,7 @@ export = [
 
 
 
-function formatNumber( num : Number) {
-    return `$${num.toFixed(2)}`
-}
+
 
 //which is better? Not sure.
 const asyncResponse = (action : string ) => {
