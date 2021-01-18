@@ -153,7 +153,7 @@ export async function ListStock(user : User) : Promise<string> {
 
     const userStocks = await GetUserStocksAsArray(user.id);
 
-    console.log(userStocks)
+    //console.log(userStocks)
     userStocks.forEach((stock)=> {
         result += (`${stock.quantity} ${stock.symbol} @ ${formatNumber(stock.priceBought)}/share\n`)
     })
