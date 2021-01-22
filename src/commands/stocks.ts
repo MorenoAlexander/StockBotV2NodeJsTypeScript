@@ -68,7 +68,7 @@ export = [
         async execute(message : Message, args : string[]) {
             const messageResponse = (await message.reply(asyncResponse('SellOrder')))
             const SYMBOL = args[0].toUpperCase();
-            const quantity = parseInt(args[1],2)
+            const quantity = parseInt(args[1])
             const result = await SellStock(message.author,SYMBOL,quantity)
 
             messageResponse.edit(result);
