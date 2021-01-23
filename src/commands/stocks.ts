@@ -10,7 +10,17 @@ import {BuyStock, GetBalance, GetQuote, CalculatePortforlio, SellStock, ListStoc
 
 
 
+
 export = [
+    {
+        name:'signup',
+        description: 'Register with stockbot and start playing with a simulate market!',
+        async execute(message : Message, args : string[]){
+            if (args.length !== 0) {
+                await message.reply("This command takes NO arguments!")
+            }
+        }
+    },
     {
         name: 'stock',
         description: 'test',
