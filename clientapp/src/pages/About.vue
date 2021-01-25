@@ -36,7 +36,7 @@ export default {
   methods: {
     async getNewId() {
 
-      this.generatedId = (await axios.get('https://oneparish-dev3-1222.nodechef.com/test')).data
+      this.generatedId = (await axios.get('https://oneparish-dev3-1222.nodechef.com/api/random/newID')).data
 
     }
   }

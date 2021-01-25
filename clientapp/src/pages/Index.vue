@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <h1>Hello, world!</h1>
+    <span class="w-64 text-gray-500 mx-auto font-large">Hello, world!</span>
     <p>
       Lorem ipsum dolor sit amet, consectetur adipisicing elit. Pariatur
       excepturi labore tempore expedita, et iste tenetur suscipit explicabo!
@@ -21,7 +21,8 @@
 
     <v-card>
       <v-card-text>
-        <v-form>
+        <h2 class="mx-auto"> HELLO</h2>
+        <v-form class="mx-auto">
           <v-text-field
             class="mt-4"
             label="Username"
@@ -42,10 +43,12 @@
             type="password"
             hint="Password"
             hide-details
+            
             outlined
             filled
             dense
           />
+          <v-btn @click="onLogin()"> Login</v-btn>
         </v-form>
       </v-card-text>
     </v-card>
@@ -57,12 +60,20 @@ export default {
   data() {
     return {
       username: "",
-    };
+      password: ""
+    }
   },
   metaInfo: {
     title: "Hello, world!",
   },
-};
+  methods: {
+    onLogin() {
+      //Do some login request!
+
+
+    }
+  }
+}
 </script>
 
 <style>

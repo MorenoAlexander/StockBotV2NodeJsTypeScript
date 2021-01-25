@@ -4,11 +4,28 @@
 // Changes here require a server restart.
 // To restart press CTRL + C in terminal and run `gridsome develop`
 
+
+
+
+
 module.exports = {
   siteName: 'Gridsome',
   plugins: [
     {
       use: 'gridsome-plugin-typescript'
+    },
+    {
+      use:'gridsome-plugin-tailwindcss',
+      
+      //These are the default options.
+
+      options: {
+        tailwindConfig: './tailwind.config.js',
+        presetEnvConfig: {},
+        shouldImport: false,
+        shouldTimeTravel: false
+      }
+      
     }
-  ]
+  ],
 }
