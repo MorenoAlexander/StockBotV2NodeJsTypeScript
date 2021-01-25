@@ -20,7 +20,7 @@ export const NAV = Object.freeze([
     },
     {
         name: 'About',
-        route: '/About',
+        route: '/about',
         icon: 'book'
     }
 ])

@@ -18,7 +18,7 @@ export default {
     </v-icon>
 
     <v-toolbar-title>
-      Stock Bot Management Dashboard
+      Static site
     </v-toolbar-title>
 
     <v-spacer />

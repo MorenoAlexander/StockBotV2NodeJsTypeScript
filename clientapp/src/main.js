@@ -4,8 +4,9 @@
 require('~/tailwindmain.css')
 
 import Vuetify from 'vuetify'
-import 'vuetify/dist/vuetify.min.css'
-import 'material-design-icons-iconfont/dist/material-design-icons.css'
+// import 'vuetify/dist/vuetify.min.css'
+import '../node_modules/vuetify/dist/vuetify.min.css'
+import '../node_modules/material-design-icons-iconfont/dist/material-design-icons.css'
 import DefaultLayout from '~/layouts/Default.vue'
 
 
