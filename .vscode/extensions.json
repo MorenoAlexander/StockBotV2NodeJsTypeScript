@@ -9,6 +9,7 @@
         "stylelint.vscode-stylelint",
         "mrmlnc.vscode-scss",
         "esbenp.prettier-vscode",
-        "coenraads.bracket-pair-colorizer-2"
+        "coenraads.bracket-pair-colorizer-2",
+        "vuetifyjs.vuetify-vscode"
     ]
 }
