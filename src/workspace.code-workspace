@@ -11,6 +11,9 @@
 	"folders": [
 		{
 			"path": ".."
+		},
+		{
+			"path": "..\\clientapp"
 		}
 	],
 	"settings": {

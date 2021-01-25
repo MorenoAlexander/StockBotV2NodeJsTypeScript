@@ -92,7 +92,7 @@ export async function SellStock(user : User, quotesymbol: string, orderCount : n
 
 
 
-        return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(quote.c)}/sh for a total of ${credit}!`
+        return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(quote.c)}/sh for a total of ${formatNumber(credit)}!`
     }
     catch(e) {
         console.log(e);
