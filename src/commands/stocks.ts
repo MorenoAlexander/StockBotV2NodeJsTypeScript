@@ -1,7 +1,7 @@
 import {Message } from 'discord.js'
 import {formatNumber, formatPercentage} from './../utils/formatFunc'
 import Quote from "../interfaces/stocks/quote";
-import {BuyStock, GetBalance, GetQuote, CalculatePortforlio, SellStock, ListStock} from '../StockDBService'
+import {BuyStock, GetBalance, GetQuote, CalculatePortforlio, SellStock, ListStock, SignUp} from '../StockDBService'
 
 
 
@@ -16,9 +16,20 @@ export = [
         name:'signup',
         description: 'Register with stockbot and start playing with a simulate market!',
         async execute(message : Message, args : string[]){
+            const messageResponse = (await message.reply(asyncResponse('new account')))
             if (args.length !== 0) {
                 await message.reply("This command takes NO arguments!")
+                return;
             }
+
+            const Result = await SignUp(message.author)
+
+
+            messageResponse.edit(Result);
+
+
+
+
         }
     },
     {

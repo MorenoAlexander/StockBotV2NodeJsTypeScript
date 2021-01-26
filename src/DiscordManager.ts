@@ -2,10 +2,11 @@
 import fs from 'fs';
 import {Manager} from './interfaces/common/Manager';
 import Discord, { ClientOptions, Client } from 'discord.js';
-
+import logger from './WinstonLogger'
 //Initializer
 import {prefix} from '../serverconfig.json'
-import { isThrowStatement } from 'typescript';
+
+
 
 
 export class DiscordManager extends Discord.Client implements Manager {
@@ -19,7 +20,7 @@ export class DiscordManager extends Discord.Client implements Manager {
         this.commands = null;
 
         this.on('ready', () => {
-            console.log(`Discord client established as ${(this.user.tag != null) ? this.user.tag : "No user" }` )
+            logger.info(`Discord client established as ${(this.user.tag != null) ? this.user.tag : "No user" }` )
 
         })
 
@@ -44,9 +45,9 @@ export class DiscordManager extends Discord.Client implements Manager {
 
     logIn(apiKey : string) {
         this.login(apiKey).then((success : any) => {
-            console.log(`Discord client connection successfully established: ${success}`);
+            logger.info(`Discord client connection successfully established: ${success}`);
         },(rejected : any) => {
-            console.log(rejected);
+            logger.error(rejected);
         })
     }
 
@@ -76,7 +77,7 @@ export class DiscordManager extends Discord.Client implements Manager {
                 this.commands.get(command).execute(message, args);
             }
             catch(error) {
-                console.log(error)
+                logger.error(error)
                 message.reply("An error occurred while attempting to execute command. Sumting Wong!")
             }
         })
