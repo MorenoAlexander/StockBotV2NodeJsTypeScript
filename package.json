@@ -3,7 +3,8 @@
   "scripts": {
     "dev": "tsc && nodemon dist/app.js",
     "start": "nodemon dist/src/app.js",
-    "build": "tsc"
+    "build": "tsc",
+    "prod": "node dist/src/app.js &"
   },
   "dependencies": {
     "discord.js": "^12.5.1",
