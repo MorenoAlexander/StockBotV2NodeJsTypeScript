@@ -1,6 +1,6 @@
 <template>
   <Layout>
-    <span class="w-64 text-gray-500 mx-auto font-large">Hello, world!</span>
+    
     <p>
       Lorem ipsum dolor sit amet, consectetur adipisicing elit. Pariatur
       excepturi labore tempore expedita, et iste tenetur suscipit explicabo!
@@ -20,6 +20,7 @@
     </p>
 
     <v-card>
+      <v-card-title><span class="index-title">Hello, world!</span></v-card-title>
       <v-card-text>
         <h2 class="mx-auto"> HELLO</h2>
         <v-form class="mx-auto">
@@ -77,6 +78,13 @@ export default {
 </script>
 
 <style>
+
+.index-title {
+  @apply absolute;
+  @apply w-64;
+  @apply text-gray-500;
+  @apply mx-auto;
+}
 .home-links a {
   margin-right: 1rem;
 }
