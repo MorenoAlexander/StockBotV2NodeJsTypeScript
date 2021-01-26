@@ -4,6 +4,8 @@ import {DiscordManager} from './DiscordManager'
 
 import serverconfig from '../serverconfig.json';
 
+import logger from './WinstonLogger'
+
 
 const app = express()
 
@@ -19,5 +21,3 @@ app.listen(serverconfig["port"], () => {
 
     discordManager.logIn(serverconfig["DiscordKey"]);
 });
-
-//test

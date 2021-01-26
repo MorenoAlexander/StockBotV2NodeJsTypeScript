@@ -6,6 +6,8 @@ import {v4 as uuidv4 } from 'uuid'
 import firebase from 'firebase'
 import StockUser from "./interfaces/stocks/StockUser";
 
+import logger from './WinstonLogger'
+
 import {formatNumber, formatPercentage} from './utils/formatFunc'
 const finnhub = require('finnhub')
 
@@ -17,7 +19,23 @@ const FirebaseApp = initFirebase()
 
  // const StockQuoteCache = new Map<string,Quote>();
 
+export async function SignUp(user : User) : Promise<string>{
+    const newUser = {ID:user.id, GUID: uuidv4(), Cash: 1000.00, Username: user.username} as StockUser;
 
+
+    const allStocks =Object.keys( (await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(user.id).once('value')).val())
+
+
+    allStocks.forEach((stockLotKey : string) => {
+        FirebaseApp.database().ref("stocks").child(stockLotKey).remove();
+    })
+
+    await FirebaseApp.database().ref("users").child(user.id).set(newUser)
+
+    return `Welcome to the market! Your starting balance is ${formatNumber(newUser.Cash)}`
+
+
+}
 
 
 export  async function GetQuote(SYMBOL : string) {
@@ -95,7 +113,7 @@ export async function SellStock(user : User, quotesymbol: string, orderCount : n
         return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(quote.c)}/sh for a total of ${formatNumber(credit)}!`
     }
     catch(e) {
-        console.log(e);
+        logger.error(e);
         return "Error"
     }
 }
@@ -153,7 +171,6 @@ export async function ListStock(user : User) : Promise<string> {
 
     const userStocks = await GetUserStocksAsArray(user.id);
 
-    
     userStocks.forEach((stock)=> {
         result += (`${stock.quantity} ${stock.symbol} @ ${formatNumber(stock.priceBought)}/share\n`)
     })
@@ -172,8 +189,6 @@ async function GetUserData(userId : string)  : Promise<StockUser> {
 
 async function GetUserStocksAsArray(userId : string) : Promise<StockLot[]> {
     return (Object.values((await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(userId).once('value')).val()) as StockLot[]).sort(stockSortBySymbol)
-
-
 }
 /**
  * creates a map of stocks with the same symbols. Primarily used by the Sell function
@@ -197,7 +212,7 @@ async function GetUserStocksAsMap(userId : string, symbol : string) : Promise<Ma
 
 
 function initFirebase() : firebase.app.App {
-    console.log(firebaseInit)
+    logger.info(firebaseInit)
     return firebase.initializeApp(firebaseInit)
 }
 
@@ -205,7 +220,6 @@ function initFirebase() : firebase.app.App {
 
 
 function initFinnhub() {
-    
     const api_key = finnhub.ApiClient.instance.authentications['api_key'];
     api_key.apiKey = finnhubApiKey
     return new finnhub.DefaultApi()
