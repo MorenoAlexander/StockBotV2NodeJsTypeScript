@@ -1,10 +1,10 @@
 
 import fs from 'fs';
-import {Manager} from './interfaces/common/Manager';
+import {Manager} from '../interfaces/common/Manager';
 import Discord, { ClientOptions, Client } from 'discord.js';
-import logger from './WinstonLogger'
+import logger from '../utils/WinstonLogger'
 //Initializer
-import {prefix} from '../serverconfig.json'
+import {prefix} from '../../serverconfig.json'
 
 
 
@@ -20,7 +20,7 @@ export class DiscordManager extends Discord.Client implements Manager {
         this.commands = null;
 
         this.on('ready', () => {
-            logger.info(`Discord client established as ${(this.user.tag != null) ? this.user.tag : "No user" }` )
+            logger.info(`Discord client established as ${(this?.user?.tag != null) ? this.user.tag : "No user" }` )
 
         })
 
@@ -62,13 +62,12 @@ export class DiscordManager extends Discord.Client implements Manager {
         this.app.post('api/discord/gift', (req: any, res: any) => {})
 
         this.on('message', (message) => {
-
+            let args = []
             if (!message.content.startsWith(prefix) || message.author.bot) return;
 
-            const args = message.content.slice(prefix.length).trim().split(/ +/);
+            args = message.content.slice(prefix.length).trim().split(/ +/);
 
-            const command = args.shift().toLowerCase(); //tslint-disable-line
-
+            const command = args?.shift()?.toLowerCase()
             try {
                 if(!this.commands.has(command)) {
                     message.channel.send("No such command exists. Sorry!");

@@ -1,23 +1,23 @@
 import { Message, User } from "discord.js";
-import { firebaseInit,finnhubApiKey} from '../serverconfig.json'
-import Quote from "./interfaces/stocks/quote";
-import StockLot from "./interfaces/stocks/StockLot";
+import {finnhubApiKey} from '../../serverconfig.json'
+import Quote from "../interfaces/stocks/quote";
+import StockLot from "../interfaces/stocks/StockLot";
 import {v4 as uuidv4 } from 'uuid'
-import firebase from 'firebase'
-import StockUser from "./interfaces/stocks/StockUser";
-
-import logger from './WinstonLogger'
-
-import {formatNumber, formatPercentage} from './utils/formatFunc'
-const finnhub = require('finnhub')
-
-const finnhubClient = initFinnhub();
+import StockUser from "../interfaces/stocks/StockUser";
+import {formatNumber, formatPercentage} from '../utils/formatFunc'
+import Firebase from 'firebase'
+import logger from '../utils/WinstonLogger'
 
 
 
-const FirebaseApp = initFirebase()
 
- // const StockQuoteCache = new Map<string,Quote>();
+import FinnhubService from './FinnhubService'
+
+const finnhubClient = FinnhubService.getInstance(finnhubApiKey);
+
+
+const FirebaseApp = Firebase.app();
+
 
 export async function SignUp(user : User) : Promise<string>{
     const newUser = {ID:user.id, GUID: uuidv4(), Cash: 1000.00, Username: user.username} as StockUser;
@@ -40,10 +40,12 @@ export async function SignUp(user : User) : Promise<string>{
 
 export  async function GetQuote(SYMBOL : string) {
 
-        let data = null
-        const request = (await (finnhubClient.quote(SYMBOL)))
-        data = JSON.parse((await request).res.text) as Quote;
-        return data;
+        let quote = await finnhubClient.Quote(SYMBOL)
+
+        logger.info(quote)
+
+
+        return quote;
 }
 
 
@@ -124,13 +126,7 @@ export async function SellStock(user : User, quotesymbol: string, orderCount : n
  */
 export async function CalculatePortforlio(user : User) : Promise<string> {
 
-    // const data = (await FirebaseApp.database().ref("stocks").orderByChild("ID").equalTo(user.id).once('value')).val()
-
-    // if(data  == null) {
-    //     return `No data found`
-    // }
     let userStocks = await GetUserStocksAsArray(user.id);
-    //console.log(userStocks)
 
     let marketVal =  0.0;
     let costBasis = 0.0;
@@ -210,20 +206,6 @@ async function GetUserStocksAsMap(userId : string, symbol : string) : Promise<Ma
     return map;
 }
 
-
-function initFirebase() : firebase.app.App {
-    logger.info(firebaseInit)
-    return firebase.initializeApp(firebaseInit)
-}
-
-
-
-
-function initFinnhub() {
-    const api_key = finnhub.ApiClient.instance.authentications['api_key'];
-    api_key.apiKey = finnhubApiKey
-    return new finnhub.DefaultApi()
-}
 
 
 const stockSortBySymbol = (a : StockLot,b : StockLot) => {

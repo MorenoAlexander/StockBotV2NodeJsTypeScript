@@ -1,5 +1,5 @@
 
-import {version,date} from '../../serverconfig.json'
+import {version,date} from '../../../serverconfig.json'
 export =     [
     {
         name: 'version',

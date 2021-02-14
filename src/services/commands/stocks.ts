@@ -1,6 +1,6 @@
 import {Message } from 'discord.js'
-import {formatNumber, formatPercentage} from './../utils/formatFunc'
-import Quote from "../interfaces/stocks/quote";
+import {formatNumber, formatPercentage} from '../../utils/formatFunc'
+import Quote from "../../interfaces/stocks/quote";
 import {BuyStock, GetBalance, GetQuote, CalculatePortforlio, SellStock, ListStock, SignUp} from '../StockDBService'
 
 
