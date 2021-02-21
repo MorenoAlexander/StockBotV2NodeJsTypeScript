@@ -25,19 +25,24 @@ export default class FinnhubService {
   public async Quote(symbol: string): Promise<Quote> {
     try {
       let symbolCapital = symbol.toUpperCase();
-
-      const response = await axios.get<Quote>(
-        FinnhubService.FINNHUB_URL + "quote",
-        {
-          params: { symbol: symbolCapital },
-        }
-      );
-
-      return response.data;
+      return await this.SendRequest<Quote>('quote', {symbol: symbolCapital})
     } catch (e) {
-      logger.error(e);
-
       throw e;
+    }
+  }
+
+
+  private async SendRequest<T>(path : string, params : any) : Promise<T>{
+    try {
+      let result = await axios.get(FinnhubService.FINNHUB_URL+path,{
+        params: params
+      })
+
+      return result.data;
+    }
+    catch(error) {
+      logger.error(error)
+      throw error;
     }
   }
 }

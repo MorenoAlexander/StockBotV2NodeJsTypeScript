@@ -36,6 +36,7 @@ export = [
         name: 'stock',
         description: 'test',
         async execute(message : Message, args : string[]) {
+            try{
             if (args.length == 0) {
                 await message.reply("PLEASE INCLUDE A STOCK SYMBOL")
                 return;
@@ -45,16 +46,25 @@ export = [
             GetQuote(SYMBOL).then( (data : Quote) => {
                 message.channel.send(`${SYMBOL}: $${data.c} ${formatPercentage(((data.c - data.pc)/data.pc)*100)}`)
             });
+            }
+            catch (e){
+                throw e;
+            }
         }
     },
     {
         name: 'balance',
         description: 'Gets user\'s current balance',
         async execute(message : Message, args : string[]) {
+            try {
             const messageResponse = (await message.reply(asyncResponse('balance')))
             var val = await GetBalance(message.author)
 
             messageResponse.edit(formatNumber(val));
+            }
+            catch (e) {
+                throw e;
+            }
         }
     },
     {
@@ -71,6 +81,7 @@ export = [
         name: 'buy',
         description: 'calculates your portfolio value',
         async execute(message : Message, args : string[]) {
+            try {
             const messageResponse = (await message.reply(asyncResponse('stock')))
             const SYMBOL = args[0].toUpperCase();
             const quantity = parseInt(args[1]);
@@ -81,29 +92,41 @@ export = [
 
             messageResponse.edit(result);
             return;
+            }
+            catch (e){
+                throw e;
+            }
         }
     },
     {
         name:'sell',
         description: 'Sell a stock',
         async execute(message : Message, args : string[]) {
+            try {
             const messageResponse = (await message.reply(asyncResponse('SellOrder')))
             const SYMBOL = args[0].toUpperCase();
             const quantity = parseInt(args[1])
             const result = await SellStock(message.author,SYMBOL,quantity)
 
             messageResponse.edit(result);
+            }
+            catch (e) {
+                throw e;
+            }
         }
     },
     {
         name: 'list',
         description: 'Lists the stocks/crypto in your portfolio',
         async execute(message : Message, args : string[]) {
+            try {
             const messageResponse = (await message.reply(asyncResponse(asyncResponse('stock list'))))
-
             const result = await ListStock(message.author)
-
             messageResponse.edit(result)
+            }
+            catch (e){
+                throw e;
+            }
         }
     }
 ]

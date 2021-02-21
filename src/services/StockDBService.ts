@@ -8,14 +8,8 @@ import {formatNumber, formatPercentage} from '../utils/formatFunc'
 import Firebase from 'firebase'
 import logger from '../utils/WinstonLogger'
 
-
-
-
 import FinnhubService from './FinnhubService'
-
 const finnhubClient = FinnhubService.getInstance(finnhubApiKey);
-
-
 const FirebaseApp = Firebase.app();
 
 
@@ -32,6 +26,7 @@ export async function SignUp(user : User) : Promise<string>{
 
     await FirebaseApp.database().ref("users").child(user.id).set(newUser)
 
+
     return `Welcome to the market! Your starting balance is ${formatNumber(newUser.Cash)}`
 
 
@@ -41,10 +36,8 @@ export async function SignUp(user : User) : Promise<string>{
 export  async function GetQuote(SYMBOL : string) {
 
         let quote = await finnhubClient.Quote(SYMBOL)
-
         logger.info(quote)
-
-
+        
         return quote;
 }
 

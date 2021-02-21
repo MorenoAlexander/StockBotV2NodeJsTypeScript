@@ -78,6 +78,7 @@ export class DiscordManager extends Discord.Client implements Manager {
             catch(error) {
                 logger.error(error)
                 message.reply("An error occurred while attempting to execute command. Sumting Wong!")
+                return;
             }
         })
 
