@@ -1,7 +1,8 @@
 import { Message } from 'discord.js'
 import { formatNumber, formatPercentage } from '../../utils/formatFunc'
 import ICrypto from '../../interfaces/crypto/crypto'
-import { GetCryptoQuote } from '../CryptoDBService'
+import { GetCryptoQuote, BuyCrypto } from '../CryptoDBService'
+import logger from '../../utils/WinstonLogger'
 
 export = [
   {
@@ -26,8 +27,26 @@ export = [
       } catch (e) {
         throw e
       }
-    }
-  }
+    },
+  },
+  {
+    name: 'crypto-buy',
+    description: 'buy crpyto currency',
+    async execute(message: Message, args: string[]) {
+      try {
+        const messageResponse = await message.reply(
+          'Buying your crpyto currency...'
+        )
+        const SYMBOL = args[0].toUpperCase()
+        const quantity = parseInt(args[1])
+        await messageResponse.edit(
+          await BuyCrypto(message.author, quantity, SYMBOL)
+        )
+      } catch (e) {
+        logger.error(e)
+      }
+    },
+  },
 ]
 
 //which is better? Not sure.

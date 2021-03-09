@@ -5,7 +5,7 @@ export const namespaced = true
 const initDefaultState = () => {
   return {
     usercookie: null,
-    email: ''
+    email: '',
   }
 }
 
@@ -20,7 +20,7 @@ export const mutations = {
   },
   CLEAR_STATE(state: any) {
     Object.assign(state, initDefaultState())
-  }
+  },
 }
 
 export const actions = {
@@ -32,7 +32,7 @@ export const actions = {
       commit('SET_USER_COOKIE', null)
     }
   },
-  async logoutUser({ commit, state }: any) {}
+  async logoutUser({ commit, state }: any) {},
 }
 
 export const getters = {
@@ -41,7 +41,7 @@ export const getters = {
   },
   getUserCookie(state: any): string {
     return state.usercookie
-  }
+  },
 }
 
 /**PRIVATE FUNCTIONS */
@@ -54,10 +54,13 @@ async function LoginIntoSession(payload: any): Promise<string> {
   }
 
   return response.data
-
-  return 'lol'
 }
 
-async function LogoutOfSession() {}
-
-interface LoginResponse {}
+const LogoutOfSession = async () => {
+  try {
+    let response = await axios.post('/api/auth/logout')
+  } catch (error) {
+    console.log(error)
+    return false
+  }
+}
