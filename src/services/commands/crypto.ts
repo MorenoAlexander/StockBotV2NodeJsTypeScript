@@ -48,8 +48,3 @@ export = [
     },
   },
 ]
-
-//which is better? Not sure.
-const asyncResponse = (action: string) => {
-  return `Fetching your ${action}...`
-}
