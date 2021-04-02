@@ -33,7 +33,7 @@ export class DiscordManager extends Discord.Client implements Manager {
 
     const commandFiles = fs
       .readdirSync(__dirname + '/commands')
-      .filter(file => file.endsWith('.js'))
+      .filter((file) => file.endsWith('.js'))
     for (const file of commandFiles) {
       const commands = require(__dirname + `/commands/${file}`)
 
@@ -64,14 +64,11 @@ export class DiscordManager extends Discord.Client implements Manager {
     })
     this.app.post('api/discord/gift', (req: any, res: any) => {})
 
-    this.on('message', message => {
+    this.on('message', async (message) => {
       let args = []
       if (!message.content.startsWith(prefix) || message.author.bot) return
 
-      args = message.content
-        .slice(prefix.length)
-        .trim()
-        .split(/ +/)
+      args = message.content.slice(prefix.length).trim().split(/ +/)
 
       const command = args?.shift()?.toLowerCase()
       try {
@@ -79,7 +76,7 @@ export class DiscordManager extends Discord.Client implements Manager {
           message.channel.send('No such command exists. Sorry!')
           return
         }
-        this.commands.get(command).execute(message, args)
+        await this.commands.get(command).execute(message, args)
       } catch (error) {
         logger.error(error)
         message.reply(

@@ -8,8 +8,9 @@ import {
   CalculatePortforlio,
   SellStock,
   ListStock,
-  SignUp
+  SignUp,
 } from '../StockDBService'
+import logger from '../../utils/WinstonLogger'
 
 export = [
   {
@@ -26,7 +27,7 @@ export = [
       const Result = await SignUp(message.author)
 
       messageResponse.edit(Result)
-    }
+    },
   },
   {
     name: 'stock',
@@ -49,7 +50,7 @@ export = [
       } catch (e) {
         throw e
       }
-    }
+    },
   },
   {
     name: 'balance',
@@ -63,7 +64,7 @@ export = [
       } catch (e) {
         throw e
       }
-    }
+    },
   },
   {
     name: 'portfolio',
@@ -73,7 +74,7 @@ export = [
 
       const result = await CalculatePortforlio(message.author)
       messageResponse.edit(result)
-    }
+    },
   },
   {
     name: 'buy',
@@ -93,7 +94,7 @@ export = [
       } catch (e) {
         throw e
       }
-    }
+    },
   },
   {
     name: 'sell',
@@ -101,15 +102,20 @@ export = [
     async execute(message: Message, args: string[]) {
       try {
         const messageResponse = await message.reply(asyncResponse('SellOrder'))
+        // if (args.length === 0) {
+        //   await messageResponse.edit('No symbol specified')
+        //   return
+        // }
         const SYMBOL = args[0].toUpperCase()
         const quantity = parseInt(args[1])
         const result = await SellStock(message.author, SYMBOL, quantity)
 
         messageResponse.edit(result)
       } catch (e) {
+        logger.error(e.message)
         throw e
       }
-    }
+    },
   },
   {
     name: 'list',
@@ -124,8 +130,8 @@ export = [
       } catch (e) {
         throw e
       }
-    }
-  }
+    },
+  },
 ]
 
 //which is better? Not sure.
