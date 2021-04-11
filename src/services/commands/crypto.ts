@@ -38,7 +38,8 @@ export = [
           'Buying your crpyto currency...'
         )
         const SYMBOL = args[0].toUpperCase()
-        const quantity = parseInt(args[1])
+        const quantity = parseFloat(args[1])
+
         await messageResponse.edit(
           await BuyCrypto(message.author, quantity, SYMBOL)
         )
