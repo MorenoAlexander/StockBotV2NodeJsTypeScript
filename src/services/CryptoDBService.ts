@@ -56,7 +56,7 @@ export const BuyCrypto = async (
         userWalletData.quantity += quantity
         userWalletData.averagePrice =
           userWalletData.costBasis / userWalletData.quantity
-        //use less comment reeee
+
         await firebaseApp
           .database()
           .ref(SYMBOL + '_wallets')
