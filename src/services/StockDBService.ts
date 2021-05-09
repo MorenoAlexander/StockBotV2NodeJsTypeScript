@@ -19,20 +19,26 @@ export async function SignUp(user: User): Promise<string> {
     Cash: 1000.0,
     Username: user.username,
   } as StockUser
-
-  const allStocks = Object.keys(
-    (
-      await FirebaseApp.database()
-        .ref('stocks')
-        .orderByChild('ID')
-        .equalTo(user.id)
-        .once('value')
-    ).val()
-  )
-
-  allStocks.forEach((stockLotKey: string) => {
-    FirebaseApp.database().ref('stocks').child(stockLotKey).remove()
-  })
+  //
+  try {
+    const allStocks = Object.keys(
+      (
+        await FirebaseApp.database()
+          .ref('stocks')
+          .orderByChild('ID')
+          .equalTo(user.id)
+          .once('value')
+      ).val()
+    )
+    if (allStocks.length > 0) {
+      allStocks.forEach((stockLotKey: string) => {
+        FirebaseApp.database().ref('stocks').child(stockLotKey).remove()
+      })
+    }
+    //
+  } catch (err) {
+    logger.error(err)
+  }
 
   await FirebaseApp.database().ref('users').child(user.id).set(newUser)
 
