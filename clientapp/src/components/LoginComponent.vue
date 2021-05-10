@@ -21,6 +21,8 @@ export default {
       payload: {
         email: '',
         password: '',
+	day: new Date(),
+		
       },
     }
   },
