@@ -86,6 +86,7 @@ export class DiscordManager extends Discord.Client implements Manager {
       }
     })
 
+    Parse.Cloud.run('job_helloWorld')
     return true
   }
 }
