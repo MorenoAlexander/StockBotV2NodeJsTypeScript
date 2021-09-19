@@ -6,9 +6,8 @@ import cookieParser from 'cookie-parser'
 import { DiscordManager } from './services/DiscordManager'
 const serverconfig: IServerConfig = require('../serverconfig.json')
 import FirebaseAdmin from 'firebase-admin'
-const { ParseServer, redisOptions } = require('parse-server')
+const { ParseServer, RedisCacheAdapter } = require('parse-server')
 const FirebaseAdminAccount = require('../FirebaseAdminAccount.json')
-
 const app = express()
 
 //Initialize DB service
@@ -21,7 +20,7 @@ FirebaseAdmin.initializeApp({
 const discordManager = new DiscordManager()
 
 // fetch parseServerConfig from server  config
-const parseConfig = serverconfig['parseConfig']
+const parseConfig = serverconfig.parseConfig
 // Initialize  Parse API
 
 const api = new ParseServer({
@@ -32,13 +31,14 @@ const api = new ParseServer({
   masterKey: parseConfig.masterKey || 'DEV_MASTER_KEY',
   serverURL: parseConfig.serverURL || 'http://localhost:17419/parse',
   sessionLength: 86400 * 2,
+  // cacheAdapter: new RedisCacheAdapter({host: '192.168.1.72', port: 6379})
 })
 
 app.use('/parse', api)
 
-/**Register middleware **********/
+/** Register middleware **********/
 
-//Body parser
+// Body parser
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
@@ -55,10 +55,10 @@ StockAPI(app)
 // Static files for internal dashboard
 app.use(express.static('./public'))
 
-app.listen(serverconfig['port'], () => {
-  console.log(`Server is listening on port: ${serverconfig['port']}`)
+app.listen(serverconfig.port, () => {
+  console.log(`Server is listening on port: ${serverconfig.port}`)
   console.log('Server ready, commencing initialization.')
 
   discordManager.setUp(app)
-  discordManager.logIn(serverconfig['DiscordKey'] as string)
+  discordManager.logIn(serverconfig.DiscordKey as string)
 })

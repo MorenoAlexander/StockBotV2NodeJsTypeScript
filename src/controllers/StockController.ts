@@ -6,7 +6,7 @@ const FirebaseApp = Firebase.app()
 
 export default function Register(app: any) {
   app.get('/api/stock/getusers', async (req: Request, res: Response) => {
-    let data = await FirebaseApp.database()
+    const data = await FirebaseApp.database()
       .ref()
       .child('users')
       .once('value')

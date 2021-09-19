@@ -24,7 +24,7 @@ export default class FinnhubService {
 
   public async Quote(symbol: string): Promise<Quote> {
     try {
-      let symbolCapital = symbol.toUpperCase()
+      const symbolCapital = symbol.toUpperCase()
       return await this.SendRequest<Quote>('quote', { symbol: symbolCapital })
     } catch (e) {
       throw e
@@ -38,7 +38,7 @@ export default class FinnhubService {
     to: number = new Date().getTime() + 1000
   ) {
     try {
-      let symbolCapital = 'BINANCE:' + symbol.toUpperCase() + 'USDT'
+      const symbolCapital = 'BINANCE:' + symbol.toUpperCase() + 'USDT'
       return await this.SendRequest<ICrypto>('quote', {
         symbol: symbolCapital,
         resolution,
@@ -52,8 +52,8 @@ export default class FinnhubService {
 
   private async SendRequest<T>(path: string, params: any): Promise<T> {
     try {
-      let result = await axios.get(FinnhubService.FINNHUB_URL + path, {
-        params: params
+      const result = await axios.get(FinnhubService.FINNHUB_URL + path, {
+        params
       })
 
       return result.data

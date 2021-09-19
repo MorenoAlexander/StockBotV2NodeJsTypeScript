@@ -1,4 +1,4 @@
-import { Message, User } from 'discord.js'
+import { User } from 'discord.js'
 import { finnhubApiKey } from '../../serverconfig.json'
 import Quote from '../interfaces/stocks/quote'
 import StockLot from '../interfaces/stocks/StockLot'
@@ -9,6 +9,7 @@ import Firebase from 'firebase-admin'
 import logger from '../utils/WinstonLogger'
 
 import FinnhubService from './FinnhubService'
+
 const finnhubClient = FinnhubService.getInstance(finnhubApiKey)
 const FirebaseApp = Firebase.app()
 
@@ -48,10 +49,9 @@ export async function SignUp(user: User): Promise<string> {
 }
 
 export async function GetQuote(SYMBOL: string) {
-  let quote = await finnhubClient.Quote(SYMBOL)
   // logger.info(quote)
 
-  return quote
+  return await finnhubClient.Quote(SYMBOL)
 }
 
 export async function BuyStock(
@@ -85,7 +85,7 @@ export async function BuyStock(
         .child(uuidv4())
         .set(newStockLot)
     } else {
-      return `You cannot afford to purhcase this, your balance is only ${formatNumber(
+      return `You cannot afford to purchase this, your balance is only ${formatNumber(
         balance
       )}`
     }
@@ -150,7 +150,7 @@ export async function SellStock(
  * @param user
  */
 export async function CalculatePortforlio(user: User): Promise<string> {
-  let userStocks = await GetUserStocksAsArray(user.id)
+  const userStocks = await GetUserStocksAsArray(user.id)
 
   let marketVal = 0.0
   let costBasis = 0.0
