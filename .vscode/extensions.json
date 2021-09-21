@@ -2,7 +2,6 @@
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "github.vscode-pull-request-github",
-    "emeraldwalk.runonsave",
     "syler.sass-indented",
     "dariofuzinato.vue-peek",
     "stylelint.vscode-stylelint",
