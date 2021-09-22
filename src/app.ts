@@ -1,21 +1,25 @@
+require('dotenv').config()
 import IServerConfig from './interfaces/server/IServerconfig'
+const serverconfig: IServerConfig = require('../serverconfig.json')
+import { initializeApp } from 'firebase/app'
+initializeApp(serverconfig.firebaseInit)
+
+import { init, database } from './services/FirebaseAdminService'
+// global.serverConfig = serverconfig
 import path from 'path'
 import express from 'express'
 import bodyParser from 'body-parser'
 import cookieParser from 'cookie-parser'
 import { DiscordManager } from './services/DiscordManager'
-const serverconfig: IServerConfig = require('../serverconfig.json')
-import FirebaseAdmin from 'firebase-admin'
-const { ParseServer, RedisCacheAdapter } = require('parse-server')
-const FirebaseAdminAccount = require('../FirebaseAdminAccount.json')
+import { ref, get } from 'firebase/database'
+const { ParseServer } = require('parse-server')
+
 const app = express()
 
 //Initialize DB service
-FirebaseAdmin.initializeApp({
-  credential: FirebaseAdmin.credential.cert(FirebaseAdminAccount),
-  databaseURL: 'https://stockbot-c6e15.firebaseio.com',
-})
-
+get(ref(database, 'users'))
+  .then((data) => console.log(data.val()))
+  .catch((error) => console.log(error))
 //Discord class
 const discordManager = new DiscordManager()
 
@@ -55,10 +59,11 @@ StockAPI(app)
 // Static files for internal dashboard
 app.use(express.static('./public'))
 
-app.listen(serverconfig.port, () => {
+app.listen(serverconfig.port, async () => {
   console.log(`Server is listening on port: ${serverconfig.port}`)
   console.log('Server ready, commencing initialization.')
 
   discordManager.setUp(app)
   discordManager.logIn(serverconfig.DiscordKey as string)
+  //await Parse.Cloud.run('job_migrateFireBaseData')
 })

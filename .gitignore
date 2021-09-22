@@ -4,7 +4,6 @@ node_modules
 error.log
 combined.log
 FirebaseAdminAccount.json
-logs/parse-server.err.2021-09-18
-logs/parse-server.info.2021-09-18
-logs/parse-server.err.2021-09-19
-logs/parse-server.info.2021-09-19
+firebaseServiceAccount.json
+logs/*
+.env

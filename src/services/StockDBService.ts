@@ -5,13 +5,20 @@ import StockLot from '../interfaces/stocks/StockLot'
 import { v4 as uuidv4 } from 'uuid'
 import StockUser from '../interfaces/stocks/StockUser'
 import { formatNumber, formatPercentage } from '../utils/formatFunc'
-import Firebase from 'firebase-admin'
 import logger from '../utils/WinstonLogger'
-
+import { database } from './FirebaseAdminService'
+import {
+  ref,
+  get,
+  set,
+  orderByChild,
+  query,
+  equalTo,
+  remove,
+} from 'firebase/database'
 import FinnhubService from './FinnhubService'
 
 const finnhubClient = FinnhubService.getInstance(finnhubApiKey)
-const FirebaseApp = Firebase.app()
 
 export async function SignUp(user: User): Promise<string> {
   const newUser = {
@@ -23,25 +30,23 @@ export async function SignUp(user: User): Promise<string> {
   //
   try {
     const allStocks = Object.keys(
-      (
-        await FirebaseApp.database()
-          .ref('stocks')
-          .orderByChild('ID')
-          .equalTo(user.id)
-          .once('value')
+      await (
+        await get(
+          query(ref(database, 'users'), orderByChild('ID'), equalTo(user.id))
+        )
       ).val()
     )
+
     if (allStocks.length > 0) {
       allStocks.forEach((stockLotKey: string) => {
-        FirebaseApp.database().ref('stocks').child(stockLotKey).remove()
+        remove(ref(database, `stocks/${stockLotKey}`))
       })
     }
-    //
   } catch (err) {
     logger.error(err)
   }
 
-  await FirebaseApp.database().ref('users').child(user.id).set(newUser)
+  await set(ref(database, `users/${user.id}`), newUser)
 
   return `Welcome to the market! Your starting balance is ${formatNumber(
     newUser.Cash
@@ -49,8 +54,6 @@ export async function SignUp(user: User): Promise<string> {
 }
 
 export async function GetQuote(SYMBOL: string) {
-  // logger.info(quote)
-
   return await finnhubClient.Quote(SYMBOL)
 }
 
@@ -70,7 +73,7 @@ export async function BuyStock(
       GUID: user.avatar,
     } as StockLot
     const userData = (
-      await FirebaseApp.database().ref(`users/${user.id}`).once('value')
+      await get(ref(database, `users/${user.id}`))
     ).val() as StockUser
 
     let balance = userData.Cash
@@ -78,12 +81,8 @@ export async function BuyStock(
 
     if (balance >= cost) {
       balance -= cost
-      await FirebaseApp.database().ref(`users/${user.id}/Cash`).set(balance)
-
-      await FirebaseApp.database()
-        .ref('stocks')
-        .child(uuidv4())
-        .set(newStockLot)
+      await set(ref(database, `users/${user.id}/Cash`), balance)
+      await set(ref(database, `stocks/${uuidv4}`), newStockLot)
     } else {
       return `You cannot afford to purchase this, your balance is only ${formatNumber(
         balance
@@ -122,25 +121,22 @@ export async function SellStock(
       }
 
       if (stock.quantity <= 0) {
-        await FirebaseApp.database().ref(`stocks`).child(key).remove()
+        await remove(ref(database, `stocks/${key}`))
       } else {
-        await FirebaseApp.database().ref('stocks').child(key).set(stock)
+        await set(ref(database, `stocks/${key}`), stock)
       }
     })
 
     let balance = userData.Cash
     let credit = stocksSold * quote.c
     balance += credit
-    await FirebaseApp.database()
-      .ref(`users/${user.id}`)
-      .child('Cash')
-      .set(balance)
+    await set(ref(database, `users/${user.id}/Cash`), balance)
 
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
     )}/sh for a total of ${formatNumber(credit)}!`
   } catch (e) {
-    logger.error(e)
+    logger.error(e.message)
     return 'Error'
   }
 }
@@ -179,16 +175,16 @@ export async function CalculatePortforlio(user: User): Promise<string> {
 }
 
 export async function GetBalance(user: User): Promise<number> {
-  return (
-    await FirebaseApp.database().ref(`users/${user.id}/Cash`).once('value')
-  ).val()
+  return (await get(ref(database, `users/${user.id}/Cash`))).val()
 }
 
 export async function ListStock(user: User): Promise<string> {
   let result = '```'
 
+  logger.info('test')
   const userStocks = await GetUserStocksAsArray(user.id)
 
+  logger.info('length of array:' + userStocks.length)
   userStocks.forEach((stock) => {
     result += `${stock.quantity} ${stock.symbol} @ ${formatNumber(
       stock.priceBought
@@ -203,19 +199,15 @@ export async function ListStock(user: User): Promise<string> {
 // #### PRIVATE FUNCTIONS ####
 
 async function GetUserData(userId: string): Promise<StockUser> {
-  return (
-    await FirebaseApp.database().ref(`users/${userId}`).once('value')
-  ).val()
+  return (await get(ref(database, `users/${userId}`))).val()
 }
 
 async function GetUserStocksAsArray(userId: string): Promise<StockLot[]> {
   return (Object.values(
     (
-      await FirebaseApp.database()
-        .ref('stocks')
-        .orderByChild('ID')
-        .equalTo(userId)
-        .once('value')
+      await get(
+        query(ref(database, 'stocks'), orderByChild('ID'), equalTo(userId))
+      )
     ).val()
   ) as StockLot[]).sort(stockSortBySymbol)
 }
@@ -229,11 +221,9 @@ async function GetUserStocksAsMap(
   symbol: string
 ): Promise<Map<string, StockLot>> {
   let stocks = (
-    await FirebaseApp.database()
-      .ref('stocks')
-      .orderByChild('ID')
-      .equalTo(userId)
-      .once('value')
+    await get(
+      query(ref(database, 'stocks'), orderByChild('ID'), equalTo(userId))
+    )
   ).val()
 
   let keys = Object.keys(stocks)

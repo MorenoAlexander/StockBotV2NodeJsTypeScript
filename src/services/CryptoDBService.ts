@@ -1,13 +1,12 @@
 import { Message, User } from 'discord.js'
 import { finnhubApiKey } from '../../serverconfig.json'
-import Firebase from 'firebase-admin'
 import ICrypto from '../interfaces/crypto/crypto'
 import { formatNumber } from '../utils/formatFunc'
-
 import FinnhubService from './FinnhubService'
+import { database } from './FirebaseAdminService'
+import { ref, get, set } from 'firebase/database'
 import Logger from '../utils/WinstonLogger'
 import StockUser from '../interfaces/stocks/StockUser'
-const firebaseApp = Firebase.app()
 
 const finnhubClient = FinnhubService.getInstance(finnhubApiKey)
 
@@ -23,7 +22,7 @@ export const BuyCrypto = async (
   try {
     let cryptoQuote = await GetCryptoQuote(SYMBOL)
     let userData = (
-      await firebaseApp.database().ref(`users/${user.id}`).once('value')
+      await get(ref(database, `users/${user.id}`))
     ).val() as StockUser
 
     let costBasis = (cryptoQuote.c as number) * quantity
@@ -32,11 +31,7 @@ export const BuyCrypto = async (
     if (newUserBalance >= 0) {
       // get user's crypto 'wallet' for this particular crypto
       let userWalletData = (
-        await firebaseApp
-          .database()
-          .ref(SYMBOL + '_wallets')
-          .child(user.id)
-          .once('value')
+        await get(ref(database, `${SYMBOL}_wallets/${user.id}`))
       ).toJSON() as CryptoWallet
 
       if (userWalletData === null) {
@@ -46,28 +41,18 @@ export const BuyCrypto = async (
         newWalletData.costBasis = quantity * (cryptoQuote.c as number)
         newWalletData.quantity = quantity
 
-        await firebaseApp
-          .database()
-          .ref(SYMBOL + '_wallets')
-          .child(user.id)
-          .set(newWalletData)
+        await set(ref(database, `${SYMBOL}_wallets/${user.id}`), newWalletData)
       } else {
         userWalletData.costBasis += quantity * (cryptoQuote.c as number)
         userWalletData.quantity += quantity
         userWalletData.averagePrice =
           userWalletData.costBasis / userWalletData.quantity
 
-        await firebaseApp
-          .database()
-          .ref(SYMBOL + '_wallets')
-          .child(user.id)
-          .set(userWalletData)
+        await set(ref(database, `${SYMBOL}_wallets/${user.id}`), userWalletData)
       }
 
-      await firebaseApp
-        .database()
-        .ref(`users/${user.id}/Cash`)
-        .set(newUserBalance)
+      await set(ref(database, `users/${user.id}/Cash`), newUserBalance)
+
       return `Successfully purchased ${quantity} ${SYMBOL} for a total of ${formatNumber(
         quantity * (cryptoQuote.c as number)
       )}!`
