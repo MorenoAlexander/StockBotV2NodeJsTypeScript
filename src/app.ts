@@ -16,10 +16,6 @@ const { ParseServer } = require('parse-server')
 
 const app = express()
 
-//Initialize DB service
-get(ref(database, 'users'))
-  .then((data) => console.log(data.val()))
-  .catch((error) => console.log(error))
 //Discord class
 const discordManager = new DiscordManager()
 
@@ -65,5 +61,4 @@ app.listen(serverconfig.port, async () => {
 
   discordManager.setUp(app)
   discordManager.logIn(serverconfig.DiscordKey as string)
-  //await Parse.Cloud.run('job_migrateFireBaseData')
 })
