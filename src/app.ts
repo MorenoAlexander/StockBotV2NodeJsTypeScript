@@ -4,14 +4,11 @@ const serverconfig: IServerConfig = require('../serverconfig.json')
 import { initializeApp } from 'firebase/app'
 initializeApp(serverconfig.firebaseInit)
 
-import { init, database } from './services/FirebaseAdminService'
 // global.serverConfig = serverconfig
-import path from 'path'
 import express from 'express'
 import bodyParser from 'body-parser'
 import cookieParser from 'cookie-parser'
 import { DiscordManager } from './services/DiscordManager'
-import { ref, get } from 'firebase/database'
 const { ParseServer } = require('parse-server')
 
 const app = express()
@@ -31,7 +28,6 @@ const api = new ParseServer({
   masterKey: parseConfig.masterKey || 'DEV_MASTER_KEY',
   serverURL: parseConfig.serverURL || 'http://localhost:17419/parse',
   sessionLength: 86400 * 2,
-  // cacheAdapter: new RedisCacheAdapter({host: '192.168.1.72', port: 6379})
 })
 
 app.use('/parse', api)
