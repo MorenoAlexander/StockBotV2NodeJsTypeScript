@@ -78,7 +78,7 @@ export class DiscordManager extends Discord.Client implements Manager {
         }
         await this.commands.get(command).execute(message, args)
       } catch (error) {
-        logger.error(error)
+        logger.error('Error during message:' + error?.message)
         message.reply(
           'An error occurred while attempting to execute command. Sumting Wong!'
         )
@@ -86,8 +86,6 @@ export class DiscordManager extends Discord.Client implements Manager {
       }
     })
 
-    // Parse.Cloud.run('job_helloWorld')
-    // Parse.Cloud.run('job_migrateFireBaseData')
     return true
   }
 }
