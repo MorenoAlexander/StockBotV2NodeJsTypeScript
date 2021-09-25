@@ -1,20 +1,9 @@
 import { Request, Response } from 'express'
-import Firebase from 'firebase-admin'
-import logger from '../utils/WinstonLogger'
-
-const FirebaseApp = Firebase.app()
 
 export default function Register(app: any) {
   app.get('/api/stock/getusers', async (req: Request, res: Response) => {
-    let data = await FirebaseApp.database()
-      .ref()
-      .child('users')
-      .once('value')
+    const data = await new Parse.Query(Parse.User).limit(100).find()
 
-    logger.info(req.params)
-
-    logger.info(data)
-
-    res.send(JSON.stringify(data))
+    res.status(200).json(data)
   })
 }

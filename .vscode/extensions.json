@@ -1,15 +1,13 @@
 {
-    "recommendations": [
-        "dbaeumer.vscode-eslint",
-        "github.vscode-pull-request-github",
-        "kiteco.kite",
-        "emeraldwalk.runonsave",
-        "syler.sass-indented",
-        "dariofuzinato.vue-peek",
-        "stylelint.vscode-stylelint",
-        "mrmlnc.vscode-scss",
-        "esbenp.prettier-vscode",
-        "coenraads.bracket-pair-colorizer-2",
-        "vuetifyjs.vuetify-vscode"
-    ]
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "github.vscode-pull-request-github",
+    "syler.sass-indented",
+    "dariofuzinato.vue-peek",
+    "stylelint.vscode-stylelint",
+    "mrmlnc.vscode-scss",
+    "esbenp.prettier-vscode",
+    "coenraads.bracket-pair-colorizer-2",
+    "vuetifyjs.vuetify-vscode"
+  ]
 }

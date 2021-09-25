@@ -7,10 +7,10 @@ import logger from '../../utils/WinstonLogger'
 export = [
   {
     name: 'crypto',
-    description: 'get a quote for a crpyto currency',
+    description: 'get a quote for a crypto currency',
     async execute(message: Message, args: string[]) {
       try {
-        if (args.length == 0) {
+        if (args.length === 0) {
           await message.reply('PLEASE INCLUDE A CRYPTO SYMBOL')
           return
         }
@@ -31,11 +31,11 @@ export = [
   },
   {
     name: 'crypto-buy',
-    description: 'buy crpyto currency',
+    description: 'buy crypto currency',
     async execute(message: Message, args: string[]) {
       try {
         const messageResponse = await message.reply(
-          'Buying your crpyto currency...'
+          'Buying your crypto currency...'
         )
         const SYMBOL = args[0].toUpperCase()
         const quantity = parseFloat(args[1])

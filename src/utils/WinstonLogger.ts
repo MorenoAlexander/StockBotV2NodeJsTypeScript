@@ -18,6 +18,7 @@ const logger = Winston.createLogger({
     new Winston.transports.File({
       filename: 'combined.log',
       log: (info: any, next) => {
+        console.log(info)
         SendToSlack(info).then(() => next())
       },
     }),

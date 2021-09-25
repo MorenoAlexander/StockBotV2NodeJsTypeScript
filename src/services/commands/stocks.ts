@@ -128,6 +128,7 @@ export = [
         const result = await ListStock(message.author)
         messageResponse.edit(result)
       } catch (e) {
+        logger.info('Error while listing stocks: ' + e.message)
         throw e
       }
     },

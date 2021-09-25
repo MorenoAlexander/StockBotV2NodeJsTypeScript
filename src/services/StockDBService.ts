@@ -1,57 +1,77 @@
-import { Message, User } from 'discord.js'
+import { User } from 'discord.js'
 import { finnhubApiKey } from '../../serverconfig.json'
 import Quote from '../interfaces/stocks/quote'
 import StockLot from '../interfaces/stocks/StockLot'
 import { v4 as uuidv4 } from 'uuid'
-import StockUser from '../interfaces/stocks/StockUser'
 import { formatNumber, formatPercentage } from '../utils/formatFunc'
-import Firebase from 'firebase-admin'
 import logger from '../utils/WinstonLogger'
-
 import FinnhubService from './FinnhubService'
+
 const finnhubClient = FinnhubService.getInstance(finnhubApiKey)
-const FirebaseApp = Firebase.app()
 
 export async function SignUp(user: User): Promise<string> {
-  const newUser = {
-    ID: user.id,
-    GUID: uuidv4(),
-    Cash: 1000.0,
-    Username: user.username,
-  } as StockUser
-  //
-  try {
-    const allStocks = Object.keys(
-      (
-        await FirebaseApp.database()
-          .ref('stocks')
-          .orderByChild('ID')
-          .equalTo(user.id)
-          .once('value')
-      ).val()
+  // get user, if in database: reset balance; otherwise, make new user and set their properties.
+  const userInDB = await new Parse.Query(Parse.User)
+    .equalTo('discordID', user.id)
+    .first()
+
+  if (userInDB) {
+    const dm = await user.createDM()
+    dm.send(
+      'You seem to be already signed up. This action will reset your account. Please respond with Y/N.'
     )
-    if (allStocks.length > 0) {
-      allStocks.forEach((stockLotKey: string) => {
-        FirebaseApp.database().ref('stocks').child(stockLotKey).remove()
+    dm.awaitMessages((m) => /[yYnN]/.test(m.content) && !m.author.bot, {
+      max: 1,
+      errors: ['time'],
+      time: 60000,
+    })
+      .then(async (collected) => {
+        if (collected.first()?.content.startsWith('Y')) {
+          try {
+            const allStocks = await new Parse.Query('StockLot')
+              .equalTo('discordID', user.id)
+              .find()
+
+            await Parse.Object.destroyAll(allStocks, { useMasterKey: true })
+          } catch (err) {
+            logger.error(err)
+          }
+          userInDB.set('cash', 1000.0)
+          userInDB.save(null, { useMasterKey: true })
+          await dm.send('You account has been reset successfully')
+        } else {
+          await dm.send("Okay. I've canceled your request.")
+        }
+
+        return `Welcome to the market! Your starting balance is ${formatNumber(
+          userInDB.get('cash')
+        )}`
       })
-    }
-    //
-  } catch (err) {
-    logger.error(err)
+      .catch((collected) =>
+        dm.send(`This request has failed due to ${collected.size}`)
+      )
+    return `Processing your request... Check your DMs.`
+  } else {
+    // create new user and set properties.
+    const newUser = new Parse.User()
+    newUser.setUsername(user.username)
+    const pass = uuidv4()
+    newUser.setPassword(pass)
+    newUser.set('discordID', user.id)
+    newUser.set('cash', 1000.0)
+    newUser.save(null, { useMasterKey: true })
+    await (await user.createDM()).send(
+      `Welcome to StockBot. Your account has been created successfully. Use this pass code to access your account on the dashboard.${pass}`
+    )
+
+    return `Welcome to the market! Your starting balance is ${formatNumber(
+      newUser.get('cash')
+    )}`
   }
-
-  await FirebaseApp.database().ref('users').child(user.id).set(newUser)
-
-  return `Welcome to the market! Your starting balance is ${formatNumber(
-    newUser.Cash
-  )}`
 }
 
 export async function GetQuote(SYMBOL: string) {
-  let quote = await finnhubClient.Quote(SYMBOL)
-  // logger.info(quote)
-
-  return quote
+  return await finnhubClient.Quote(SYMBOL)
 }
 
 export async function BuyStock(
@@ -69,23 +89,32 @@ export async function BuyStock(
       symbol: quotesymbol,
       GUID: user.avatar,
     } as StockLot
-    const userData = (
-      await FirebaseApp.database().ref(`users/${user.id}`).once('value')
-    ).val() as StockUser
+    const userData = await GetUserData(user.id)
 
-    let balance = userData.Cash
+    if (!userData) {
+      throw new Error('User is not valid. Sign up first.')
+    }
+
+    let balance = userData.get('cash')
     const cost = newStockLot.priceBought * newStockLot.quantity
 
     if (balance >= cost) {
       balance -= cost
-      await FirebaseApp.database().ref(`users/${user.id}/Cash`).set(balance)
+      userData.set('cash', balance)
+      const stockLotPurchase = new (Parse.Object.extend(
+        'StockLot'
+      ))() as Parse.Object<Parse.Attributes>
+      stockLotPurchase.set('Date', new Date().toISOString())
+      stockLotPurchase.set('discordID', user.id)
+      stockLotPurchase.set('GUID', user.avatar)
+      stockLotPurchase.set('priceBought', quote.c)
+      stockLotPurchase.set('quantity', orderCount)
+      stockLotPurchase.set('symbol', quotesymbol)
 
-      await FirebaseApp.database()
-        .ref('stocks')
-        .child(uuidv4())
-        .set(newStockLot)
+      userData.save(null, { useMasterKey: true })
+      stockLotPurchase.save(null, { useMasterKey: true })
     } else {
-      return `You cannot afford to purhcase this, your balance is only ${formatNumber(
+      return `You cannot afford to purchase this, your balance is only ${formatNumber(
         balance
       )}`
     }
@@ -105,42 +134,42 @@ export async function SellStock(
 ): Promise<string> {
   try {
     let stocksSold = 0.0
-    let userData = await GetUserData(user.id)
-    let userStocks = await GetUserStocksAsMap(user.id, quotesymbol)
-    let quote = await GetQuote(quotesymbol)
+    const userData = await GetUserData(user.id)
+    const userStocks = await GetUserStocksAsMap(user.id, quotesymbol)
+    const quote = await GetQuote(quotesymbol)
 
-    userStocks.forEach(async (stock: StockLot, key) => {
-      if (stock.quantity >= orderCount - stocksSold) {
-        stock.quantity -= orderCount - stocksSold
-        stocksSold += orderCount - stocksSold
+    const stockPromises = userStocks.map(async (stock) => {
+      if (stock.get('quantity') >= orderCount - stocksSold) {
+        stock.set('quantity', stock.get('quantity') - orderCount - stocksSold)
+        stocksSold = stocksSold + (orderCount - stocksSold)
       } else if (
-        stock.quantity <= orderCount - stocksSold &&
-        stock.quantity >= 1
+        stock.get('quantity') <= orderCount - stocksSold &&
+        stock.get('quantity') >= 1
       ) {
-        stocksSold += stock.quantity
-        stock.quantity = 0
+        stocksSold = stocksSold + stock.get('quantity')
+        stock.set('quantity', 0)
       }
 
-      if (stock.quantity <= 0) {
-        await FirebaseApp.database().ref(`stocks`).child(key).remove()
+      if (stock.get('quantity') <= 0) {
+        return stock.destroy({ useMasterKey: true })
       } else {
-        await FirebaseApp.database().ref('stocks').child(key).set(stock)
+        return stock.save(null, { useMasterKey: true })
       }
     })
 
-    let balance = userData.Cash
-    let credit = stocksSold * quote.c
+    await Promise.all(stockPromises)
+
+    let balance = userData?.get('cash') || 0.0
+    const credit = stocksSold * quote.c
     balance += credit
-    await FirebaseApp.database()
-      .ref(`users/${user.id}`)
-      .child('Cash')
-      .set(balance)
+    userData?.set('cash', balance)
+    await userData?.save(null, { useMasterKey: true })
 
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
     )}/sh for a total of ${formatNumber(credit)}!`
   } catch (e) {
-    logger.error(e)
+    logger.error(e.message)
     return 'Error'
   }
 }
@@ -150,7 +179,7 @@ export async function SellStock(
  * @param user
  */
 export async function CalculatePortforlio(user: User): Promise<string> {
-  let userStocks = await GetUserStocksAsArray(user.id)
+  const userStocks = await GetUserStocksAsArray(user.id)
 
   let marketVal = 0.0
   let costBasis = 0.0
@@ -160,14 +189,15 @@ export async function CalculatePortforlio(user: User): Promise<string> {
   let currentPrice = 0.0
   let i = 0
   while (i < userStocks.length) {
-    if (symbol !== userStocks[i].symbol) {
-      quote = await GetQuote(userStocks[i].symbol)
+    if (symbol !== userStocks[i].get('symbol')) {
+      quote = await GetQuote(userStocks[i].get('symbol'))
       currentPrice = quote.c
-      symbol = userStocks[i].symbol
+      symbol = userStocks[i].get('symbol')
     }
 
-    marketVal += userStocks[i].quantity * currentPrice
-    costBasis += userStocks[i].quantity * userStocks[i].priceBought
+    marketVal += userStocks[i].get('quantity') * currentPrice
+    costBasis +=
+      userStocks[i].get('quantity') * userStocks[i].get('priceBought')
     i++
   }
 
@@ -180,18 +210,22 @@ export async function CalculatePortforlio(user: User): Promise<string> {
 
 export async function GetBalance(user: User): Promise<number> {
   return (
-    await FirebaseApp.database().ref(`users/${user.id}/Cash`).once('value')
-  ).val()
+    (
+      await new Parse.Query(Parse.User).equalTo('discordID', user.id).first()
+    )?.get('cash') || 0.0
+  )
 }
 
 export async function ListStock(user: User): Promise<string> {
   let result = '```'
-
   const userStocks = await GetUserStocksAsArray(user.id)
+  if (userStocks.length === 0) {
+    return 'You do not hold any stocks in your portfolio. Go buy some!'
+  }
 
   userStocks.forEach((stock) => {
-    result += `${stock.quantity} ${stock.symbol} @ ${formatNumber(
-      stock.priceBought
+    result += `${stock.get('quantity')} ${stock.get('symbol')} @ ${formatNumber(
+      stock.get('priceBought')
     )}/share\n`
   })
 
@@ -202,22 +236,17 @@ export async function ListStock(user: User): Promise<string> {
 
 // #### PRIVATE FUNCTIONS ####
 
-async function GetUserData(userId: string): Promise<StockUser> {
-  return (
-    await FirebaseApp.database().ref(`users/${userId}`).once('value')
-  ).val()
+async function GetUserData(
+  userId: string
+): Promise<Parse.User<Parse.Attributes> | undefined> {
+  return await new Parse.Query(Parse.User).equalTo('discordID', userId).first()
 }
 
-async function GetUserStocksAsArray(userId: string): Promise<StockLot[]> {
-  return (Object.values(
-    (
-      await FirebaseApp.database()
-        .ref('stocks')
-        .orderByChild('ID')
-        .equalTo(userId)
-        .once('value')
-    ).val()
-  ) as StockLot[]).sort(stockSortBySymbol)
+async function GetUserStocksAsArray(userId: string) {
+  return await new Parse.Query('StockLot')
+    .equalTo('discordID', userId)
+    .addDescending('symbol')
+    .find()
 }
 /**
  * creates a map of stocks with the same symbols. Primarily used by the Sell function
@@ -227,30 +256,10 @@ async function GetUserStocksAsArray(userId: string): Promise<StockLot[]> {
 async function GetUserStocksAsMap(
   userId: string,
   symbol: string
-): Promise<Map<string, StockLot>> {
-  let stocks = (
-    await FirebaseApp.database()
-      .ref('stocks')
-      .orderByChild('ID')
-      .equalTo(userId)
-      .once('value')
-  ).val()
-
-  let keys = Object.keys(stocks)
-  const map = new Map<string, StockLot>()
-  keys.forEach((key) => {
-    if (stocks[key].symbol === symbol) {
-      map.set(key, stocks[key])
-    }
-  })
-  return map
-}
-
-const stockSortBySymbol = (a: StockLot, b: StockLot) => {
-  if (a.symbol === b.symbol) {
-    return a.priceBought > b.priceBought ? 1 : -1
-  } else if (a.symbol > b.symbol) {
-    return 1
-  }
-  return -1
+): Promise<Parse.Object<Parse.Attributes>[]> {
+  return await new Parse.Query('StockLot')
+    .equalTo('symbol', symbol)
+    .equalTo('discordID', userId)
+    .ascending('Date')
+    .find()
 }

@@ -4,3 +4,6 @@ node_modules
 error.log
 combined.log
 FirebaseAdminAccount.json
+firebaseServiceAccount.json
+logs/*
+.env
