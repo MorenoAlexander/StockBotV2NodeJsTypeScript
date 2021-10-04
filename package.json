@@ -8,7 +8,7 @@
     "docker": "docker-compose down -v && docker-compose up"
   },
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^0.22.0",
     "body-parser": "1.19.0",
     "cookie-parser": "1.4.5",
     "discord.js": "^12.5.3",
