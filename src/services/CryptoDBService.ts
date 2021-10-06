@@ -61,7 +61,7 @@ export const BuyCrypto = async (
         )
         userWalletData?.set(
           'averagePrice',
-          userWalletData.get('costBasis') / userWalletData.get('.quantity')
+          userWalletData.get('costBasis') / userWalletData.get('quantity')
         )
 
         await userWalletData?.save(null, { useMasterKey: true })
