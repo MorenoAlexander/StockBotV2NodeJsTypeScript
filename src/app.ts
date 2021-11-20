@@ -1,14 +1,18 @@
 require('dotenv').config()
-import IServerConfig from './interfaces/server/IServerconfig'
-const serverconfig: IServerConfig = require('../serverconfig.json')
-import { initializeApp } from 'firebase/app'
-initializeApp(serverconfig.firebaseInit)
-
-// global.serverConfig = serverconfig
-import express from 'express'
 import bodyParser from 'body-parser'
 import cookieParser from 'cookie-parser'
+// import { initializeApp } from 'firebase/app'
+// initializeApp(serverconfig.firebaseInit)
+// global.serverConfig = serverconfig
+import express from 'express'
+/**
+ * Endpoints
+ */
+// Stock API
+import StockAPI from './controllers/StockController'
+import IServerConfig from './interfaces/server/IServerconfig'
 import { DiscordManager } from './services/DiscordManager'
+const serverconfig: IServerConfig = require('../serverconfig.json')
 const { ParseServer } = require('parse-server')
 
 const app = express()
@@ -38,13 +42,6 @@ app.use('/parse', api)
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
-
-/**
- * Endpoints
- */
-
-// Stock API
-import StockAPI from './controllers/StockController'
 
 StockAPI(app)
 

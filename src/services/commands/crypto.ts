@@ -1,9 +1,9 @@
 import { Message } from 'discord.js'
-import { formatNumber, formatPercentage } from '../../utils/formatFunc'
+import { setAsyncStorage } from 'parse'
 import ICrypto from '../../interfaces/crypto/crypto'
-import { GetCryptoQuote, BuyCrypto } from '../CryptoDBService'
+import { formatNumber, formatPercentage } from '../../utils/formatFunc'
 import logger from '../../utils/WinstonLogger'
-
+import { BuyCrypto, GetCryptoQuote, SellCrypto } from '../CryptoDBService'
 export = [
   {
     name: 'crypto',
@@ -42,6 +42,25 @@ export = [
 
         await messageResponse.edit(
           await BuyCrypto(message.author, quantity, SYMBOL)
+        )
+      } catch (e) {
+        logger.error(e)
+      }
+    },
+  },
+  {
+    name: 'crypto-sell',
+    description: 'Sell Crypto Currency',
+    async execute(message: Message, args: string[]) {
+      try {
+        const messageResponse = await message.reply(
+          'Selling your crypto currency...'
+        )
+        const SYMBOL = args[0].toUpperCase()
+        const quantity = parseFloat(args[1])
+
+        await messageResponse.edit(
+          await SellCrypto(message.author, quantity, SYMBOL)
         )
       } catch (e) {
         logger.error(e)
