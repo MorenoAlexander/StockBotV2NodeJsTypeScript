@@ -1,11 +1,10 @@
 import { User } from 'discord.js'
-import { finnhubApiKey } from '../../serverconfig.json'
 import ICrypto from '../interfaces/crypto/crypto'
 import { formatNumber } from '../utils/formatFunc'
-import FinnhubService from './FinnhubService'
 import Logger from '../utils/WinstonLogger'
+import FinnhubService from './FinnhubService'
 
-const finnhubClient = FinnhubService.getInstance(finnhubApiKey)
+const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY)
 
 export const GetCryptoQuote = async (SYMBOL: string): Promise<ICrypto> => {
   return await finnhubClient.CryptoCandles(SYMBOL)
@@ -81,5 +80,56 @@ export const BuyCrypto = async (
   } catch (error) {
     Logger.error(error)
     return `Sumting wong!`
+  }
+}
+
+export const SellCrypto = async (
+  user: User,
+  quantity: number,
+  SYMBOL: string
+): Promise<string> => {
+  try {
+    const cryptoQuote: ICrypto = await GetCryptoQuote(SYMBOL)
+
+    // determine how much of SYMBOL this user has
+    const userData = await new Parse.Query(Parse.User)
+      .equalTo('discordID', user.id)
+      .first()
+
+    const UserWallet = await new Parse.Query('Wallet')
+      .equalTo('discordId', user.id)
+      .equalTo('symbol', SYMBOL)
+      .first()
+
+    // #region Validation checks
+
+    if (!userData) {
+      throw new Error('User does not exist in System. Try signing up?')
+    }
+
+    if (!UserWallet) {
+      throw new Error(`User Wallet for ${SYMBOL} not Found!`)
+    }
+
+    if (UserWallet.get('quantity') - quantity < 0) {
+      throw new Error(`User Wallet does not enough ${SYMBOL} funds`)
+    }
+
+    //#endregion
+
+    const marketValue = quantity * (cryptoQuote.c as number)
+
+    UserWallet.set('quantity', UserWallet.get('quantity') - quantity)
+    userData.set('cash', userData.get('cash') + marketValue)
+
+    await UserWallet.save(null, { useMasterKey: true })
+    await userData.save(null, { useMasterKey: true })
+
+    return `You've successfully sold ${quantity} ${SYMBOL} for a total of ${formatNumber(
+      marketValue
+    )}`
+  } catch (error: any) {
+    Logger.error(error)
+    return error.message
   }
 }
