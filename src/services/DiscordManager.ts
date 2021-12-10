@@ -1,9 +1,7 @@
+import Discord, { Client, ClientOptions } from 'discord.js'
 import fs from 'fs'
 import { Manager } from '../interfaces/common/Manager'
-import Discord, { ClientOptions, Client } from 'discord.js'
 import logger from '../utils/WinstonLogger'
-//Initializer
-import { prefix } from '../../serverconfig.json'
 
 export class DiscordManager extends Discord.Client implements Manager {
   commands: any
@@ -66,9 +64,16 @@ export class DiscordManager extends Discord.Client implements Manager {
 
     this.on('message', async (message) => {
       let args = []
-      if (!message.content.startsWith(prefix) || message.author.bot) return
+      if (
+        !message.content.startsWith(process.env.PREFIX as string) ||
+        message.author.bot
+      )
+        return
 
-      args = message.content.slice(prefix.length).trim().split(/ +/)
+      args = message.content
+        .slice((process.env.PREFIX as string).length)
+        .trim()
+        .split(/ +/)
 
       const command = args?.shift()?.toLowerCase()
       try {

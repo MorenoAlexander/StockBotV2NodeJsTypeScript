@@ -1,11 +1,10 @@
 import { User } from 'discord.js'
-import { finnhubApiKey } from '../../serverconfig.json'
 import ICrypto from '../interfaces/crypto/crypto'
 import { formatNumber } from '../utils/formatFunc'
 import Logger from '../utils/WinstonLogger'
 import FinnhubService from './FinnhubService'
 
-const finnhubClient = FinnhubService.getInstance(finnhubApiKey)
+const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY)
 
 export const GetCryptoQuote = async (SYMBOL: string): Promise<ICrypto> => {
   return await finnhubClient.CryptoCandles(SYMBOL)

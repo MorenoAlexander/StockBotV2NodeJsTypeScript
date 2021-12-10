@@ -1,10 +1,9 @@
-import Winston from 'winston'
 import axios from 'axios'
-import { slackUrl } from '../../serverconfig.json'
+import Winston from 'winston'
 
 async function SendToSlack(info: any) {
   axios.post(
-    'https://hooks.slack.com/services/' + slackUrl,
+    'https://hooks.slack.com/services/' + process.env.SLACK_URL,
     { text: JSON.stringify(info) },
     { headers: { 'Content-Type': 'application/json' } }
   )

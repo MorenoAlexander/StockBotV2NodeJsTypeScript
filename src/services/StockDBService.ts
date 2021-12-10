@@ -1,13 +1,12 @@
 import { User } from 'discord.js'
-import { finnhubApiKey } from '../../serverconfig.json'
+import { v4 as uuidv4 } from 'uuid'
 import Quote from '../interfaces/stocks/quote'
 import StockLot from '../interfaces/stocks/StockLot'
-import { v4 as uuidv4 } from 'uuid'
 import { formatNumber, formatPercentage } from '../utils/formatFunc'
 import logger from '../utils/WinstonLogger'
 import FinnhubService from './FinnhubService'
 
-const finnhubClient = FinnhubService.getInstance(finnhubApiKey)
+const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY)
 
 export async function SignUp(user: User): Promise<string> {
   // get user, if in database: reset balance; otherwise, make new user and set their properties.

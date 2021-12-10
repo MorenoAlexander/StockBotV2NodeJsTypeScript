@@ -7,3 +7,4 @@ FirebaseAdminAccount.json
 firebaseServiceAccount.json
 logs/*
 .env
+get-docker.sh

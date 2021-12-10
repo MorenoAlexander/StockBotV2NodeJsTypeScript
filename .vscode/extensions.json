@@ -2,8 +2,6 @@
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "github.vscode-pull-request-github",
-    "syler.sass-indented",
-    "dariofuzinato.vue-peek",
     "stylelint.vscode-stylelint",
     "mrmlnc.vscode-scss",
     "esbenp.prettier-vscode",
