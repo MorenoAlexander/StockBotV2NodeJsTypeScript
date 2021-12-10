@@ -1,4 +1,4 @@
-FROM node:14 AS stockbot-build
+FROM --platform=arm64 node:14 AS stockbot-build
 RUN mkdir /src
 WORKDIR /src
 COPY . /src
