@@ -7,6 +7,6 @@ services:
     ports:
       - '17419:17419'
     volumes:
-      - node_cache:'/app/node_modules'
+      - node_cache:/app/node_modules
 volumes:
   node_cache:
