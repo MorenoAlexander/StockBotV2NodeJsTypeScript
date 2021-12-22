@@ -5,8 +5,20 @@ services:
     restart: always
     image: morenoalexander/stockbotv2
     ports:
-      - '17419:17419'
+      - '${PORT}:${PORT}'
     volumes:
       - node_cache:/app/node_modules
+    environment:
+      VERSION: ${VERSION}
+      DATE: ${DATE}
+      DISCORD_KEY: ${DISCORD_KEY}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY}
+      PORT: ${PORT}
+      PREFIX: ${PREFIX}
+      SLACK_URL: ${SLACK_URL}
+      DATABASE_URI: ${DATABASE_URI}
+      APP_ID: ${APP_ID}
+      MASTER_KEY: ${MASTER_KEY}
+      SERVER_URL: ${SERVER_URL}
 volumes:
   node_cache:
