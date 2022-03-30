@@ -5,12 +5,11 @@ services:
     restart: always
     image: morenoalexander/stockbotv2
     networks:
-      - container-services
+      - container-services-overlay
     ports:
       - '${PORT}:${PORT}'
     volumes:
       - node_cache:/app/node_modules
-      - container-services
     environment:
       VERSION: ${VERSION}
       DATE: ${DATE}
@@ -25,3 +24,6 @@ services:
       SERVER_URL: ${SERVER_URL}
 volumes:
   node_cache:
+networks:
+  container-services-overlay:
+    external: true
