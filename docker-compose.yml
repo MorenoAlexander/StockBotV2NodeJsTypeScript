@@ -10,6 +10,7 @@ services:
       - '${PORT}:${PORT}'
     volumes:
       - node_cache:/app/node_modules
+      - container-services
     environment:
       VERSION: ${VERSION}
       DATE: ${DATE}
