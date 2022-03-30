@@ -4,12 +4,12 @@ services:
     stdin_open: true
     restart: always
     image: morenoalexander/stockbotv2
-    network
+    networks:
+      - container-services
     ports:
       - '${PORT}:${PORT}'
     volumes:
       - node_cache:/app/node_modules
-      - container-services
     environment:
       VERSION: ${VERSION}
       DATE: ${DATE}
