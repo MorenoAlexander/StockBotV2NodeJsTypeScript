@@ -25,3 +25,5 @@ services:
       SERVER_URL: ${SERVER_URL}
 volumes:
   node_cache:
+networks:
+  container-services:
