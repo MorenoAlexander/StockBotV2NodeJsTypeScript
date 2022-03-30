@@ -2,7 +2,6 @@
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "github.vscode-pull-request-github",
-    "stylelint.vscode-stylelint",
     "mrmlnc.vscode-scss",
     "esbenp.prettier-vscode",
     "coenraads.bracket-pair-colorizer-2",

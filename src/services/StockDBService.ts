@@ -1,24 +1,26 @@
-import { User } from 'discord.js'
-import { v4 as uuidv4 } from 'uuid'
-import Quote from '../interfaces/stocks/quote'
-import StockLot from '../interfaces/stocks/StockLot'
-import { formatNumber, formatPercentage } from '../utils/formatFunc'
-import logger from '../utils/WinstonLogger'
-import FinnhubService from './FinnhubService'
+import { User } from 'discord.js';
+import { v4 as uuidv4 } from 'uuid';
+import Quote from '../interfaces/stocks/quote';
+import StockLot from '../interfaces/stocks/StockLot';
+import { formatNumber, formatPercentage } from '../utils/formatFunc';
+import logger from '../utils/WinstonLogger';
+import FinnhubService from './FinnhubService';
 
-const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY)
+const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
 export async function SignUp(user: User): Promise<string> {
   // get user, if in database: reset balance; otherwise, make new user and set their properties.
+
   const userInDB = await new Parse.Query(Parse.User)
+    .exists('discordID')
     .equalTo('discordID', user.id)
-    .first()
+    .first();
 
   if (userInDB) {
-    const dm = await user.createDM()
+    const dm = await user.createDM();
     dm.send(
       'You seem to be already signed up. This action will reset your account. Please respond with Y/N.'
-    )
+    );
     dm.awaitMessages((m) => /[yYnN]/.test(m.content) && !m.author.bot, {
       max: 1,
       errors: ['time'],
@@ -29,48 +31,52 @@ export async function SignUp(user: User): Promise<string> {
           try {
             const allStocks = await new Parse.Query('StockLot')
               .equalTo('discordID', user.id)
-              .find()
+              .find();
 
-            await Parse.Object.destroyAll(allStocks, { useMasterKey: true })
+            await Parse.Object.destroyAll(allStocks, { useMasterKey: true });
           } catch (err) {
-            logger.error(err)
+            logger.error(err);
           }
-          userInDB.set('cash', 1000.0)
-          userInDB.save(null, { useMasterKey: true })
-          await dm.send('You account has been reset successfully')
+          userInDB.set('cash', 1000.0);
+          userInDB.save(null, { useMasterKey: true });
+          await dm.send('You account has been reset successfully');
         } else {
-          await dm.send("Okay. I've canceled your request.")
+          await dm.send("Okay. I've canceled your request.");
         }
 
         return `Welcome to the market! Your starting balance is ${formatNumber(
           userInDB.get('cash')
-        )}`
+        )}`;
       })
       .catch((collected) =>
         dm.send(`This request has failed due to ${collected.size}`)
-      )
-    return `Processing your request... Check your DMs.`
+      );
+    return `Processing your request... Check your DMs.`;
   } else {
     // create new user and set properties.
-    const newUser = new Parse.User()
-    newUser.setUsername(user.username)
-    const pass = uuidv4()
-    newUser.setPassword(pass)
-    newUser.set('discordID', user.id)
-    newUser.set('cash', 1000.0)
-    newUser.save(null, { useMasterKey: true })
-    await (await user.createDM()).send(
-      `Welcome to StockBot. Your account has been created successfully. Use this pass code to access your account on the dashboard.${pass}`
-    )
-
-    return `Welcome to the market! Your starting balance is ${formatNumber(
-      newUser.get('cash')
-    )}`
+    return await createNewUser(user);
   }
 }
 
+async function createNewUser(user: User) {
+  const newUser = new Parse.User();
+  newUser.setUsername(user.username);
+  const pass = uuidv4();
+  newUser.setPassword(pass);
+  newUser.set('discordID', user.id);
+  newUser.set('cash', 1000.0);
+  newUser.save(null, { useMasterKey: true });
+  await (await user.createDM()).send(
+    `Welcome to StockBot. Your account has been created successfully. Use this pass code to access your account on the dashboard.${pass}`
+  );
+
+  return `Welcome to the market! Your starting balance is ${formatNumber(
+    newUser.get('cash')
+  )}`;
+}
+
 export async function GetQuote(SYMBOL: string) {
-  return await finnhubClient.Quote(SYMBOL)
+  return await finnhubClient.Quote(SYMBOL);
 }
 
 export async function BuyStock(
@@ -87,42 +93,42 @@ export async function BuyStock(
       priceBought: quote.c,
       symbol: quotesymbol,
       GUID: user.avatar,
-    } as StockLot
-    const userData = await GetUserData(user.id)
+    } as StockLot;
+    const userData = await GetUserData(user.id);
 
     if (!userData) {
-      throw new Error('User is not valid. Sign up first.')
+      throw new Error('User is not valid. Sign up first.');
     }
 
-    let balance = userData.get('cash')
-    const cost = newStockLot.priceBought * newStockLot.quantity
+    let balance = userData.get('cash');
+    const cost = newStockLot.priceBought * newStockLot.quantity;
 
     if (balance >= cost) {
-      balance -= cost
-      userData.set('cash', balance)
+      balance -= cost;
+      userData.set('cash', balance);
       const stockLotPurchase = new (Parse.Object.extend(
         'StockLot'
-      ))() as Parse.Object<Parse.Attributes>
-      stockLotPurchase.set('Date', new Date().toISOString())
-      stockLotPurchase.set('discordID', user.id)
-      stockLotPurchase.set('GUID', user.avatar)
-      stockLotPurchase.set('priceBought', quote.c)
-      stockLotPurchase.set('quantity', orderCount)
-      stockLotPurchase.set('symbol', quotesymbol)
+      ))() as Parse.Object<Parse.Attributes>;
+      stockLotPurchase.set('Date', new Date().toISOString());
+      stockLotPurchase.set('discordID', user.id);
+      stockLotPurchase.set('GUID', user.avatar);
+      stockLotPurchase.set('priceBought', quote.c);
+      stockLotPurchase.set('quantity', orderCount);
+      stockLotPurchase.set('symbol', quotesymbol);
 
-      userData.save(null, { useMasterKey: true })
-      stockLotPurchase.save(null, { useMasterKey: true })
+      userData.save(null, { useMasterKey: true });
+      stockLotPurchase.save(null, { useMasterKey: true });
     } else {
       return `You cannot afford to purchase this, your balance is only ${formatNumber(
         balance
-      )}`
+      )}`;
     }
 
     return `You've Successfully purchased ${orderCount} shares of ${quotesymbol} @ ${formatNumber(
       newStockLot.priceBought
-    )}/share for a total cost of ${formatNumber(cost)}!`
+    )}/share for a total cost of ${formatNumber(cost)}!`;
   } catch (e) {
-    throw e
+    throw e;
   }
 }
 
@@ -132,44 +138,44 @@ export async function SellStock(
   orderCount: number
 ): Promise<string> {
   try {
-    let stocksSold = 0.0
-    const userData = await GetUserData(user.id)
-    const userStocks = await GetUserStocksAsMap(user.id, quotesymbol)
-    const quote = await GetQuote(quotesymbol)
+    let stocksSold = 0.0;
+    const userData = await GetUserData(user.id);
+    const userStocks = await GetUserStocksAsMap(user.id, quotesymbol);
+    const quote = await GetQuote(quotesymbol);
 
     const stockPromises = userStocks.map(async (stock) => {
       if (stock.get('quantity') >= orderCount - stocksSold) {
-        stock.set('quantity', stock.get('quantity') - orderCount - stocksSold)
-        stocksSold = stocksSold + (orderCount - stocksSold)
+        stock.set('quantity', stock.get('quantity') - orderCount - stocksSold);
+        stocksSold = stocksSold + (orderCount - stocksSold);
       } else if (
         stock.get('quantity') <= orderCount - stocksSold &&
         stock.get('quantity') >= 1
       ) {
-        stocksSold = stocksSold + stock.get('quantity')
-        stock.set('quantity', 0)
+        stocksSold = stocksSold + stock.get('quantity');
+        stock.set('quantity', 0);
       }
 
       if (stock.get('quantity') <= 0) {
-        return stock.destroy({ useMasterKey: true })
+        return stock.destroy({ useMasterKey: true });
       } else {
-        return stock.save(null, { useMasterKey: true })
+        return stock.save(null, { useMasterKey: true });
       }
-    })
+    });
 
-    await Promise.all(stockPromises)
+    await Promise.all(stockPromises);
 
-    let balance = userData?.get('cash') || 0.0
-    const credit = stocksSold * quote.c
-    balance += credit
-    userData?.set('cash', balance)
-    await userData?.save(null, { useMasterKey: true })
+    let balance = userData?.get('cash') || 0.0;
+    const credit = stocksSold * quote.c;
+    balance += credit;
+    userData?.set('cash', balance);
+    await userData?.save(null, { useMasterKey: true });
 
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
-    )}/sh for a total of ${formatNumber(credit)}!`
+    )}/sh for a total of ${formatNumber(credit)}!`;
   } catch (e) {
-    logger.error(e.message)
-    return 'Error'
+    logger.error(e.message);
+    return 'Error';
   }
 }
 
@@ -178,33 +184,33 @@ export async function SellStock(
  * @param user
  */
 export async function CalculatePortforlio(user: User): Promise<string> {
-  const userStocks = await GetUserStocksAsArray(user.id)
+  const userStocks = await GetUserStocksAsArray(user.id);
 
-  let marketVal = 0.0
-  let costBasis = 0.0
+  let marketVal = 0.0;
+  let costBasis = 0.0;
 
-  let quote = null
-  let symbol = ''
-  let currentPrice = 0.0
-  let i = 0
+  let quote = null;
+  let symbol = '';
+  let currentPrice = 0.0;
+  let i = 0;
   while (i < userStocks.length) {
     if (symbol !== userStocks[i].get('symbol')) {
-      quote = await GetQuote(userStocks[i].get('symbol'))
-      currentPrice = quote.c
-      symbol = userStocks[i].get('symbol')
+      quote = await GetQuote(userStocks[i].get('symbol'));
+      currentPrice = quote.c;
+      symbol = userStocks[i].get('symbol');
     }
 
-    marketVal += userStocks[i].get('quantity') * currentPrice
+    marketVal += userStocks[i].get('quantity') * currentPrice;
     costBasis +=
-      userStocks[i].get('quantity') * userStocks[i].get('priceBought')
-    i++
+      userStocks[i].get('quantity') * userStocks[i].get('priceBought');
+    i++;
   }
 
-  const PnL = ((marketVal - costBasis) / costBasis) * 100
+  const PnL = ((marketVal - costBasis) / costBasis) * 100;
 
   return `${user.username}'s portfolio value is ${formatNumber(
     marketVal
-  )} ${formatPercentage(PnL)}`
+  )} ${formatPercentage(PnL)}`;
 }
 
 export async function GetBalance(user: User): Promise<number> {
@@ -212,25 +218,25 @@ export async function GetBalance(user: User): Promise<number> {
     (
       await new Parse.Query(Parse.User).equalTo('discordID', user.id).first()
     )?.get('cash') || 0.0
-  )
+  );
 }
 
 export async function ListStock(user: User): Promise<string> {
-  let result = '```'
-  const userStocks = await GetUserStocksAsArray(user.id)
+  let result = '```';
+  const userStocks = await GetUserStocksAsArray(user.id);
   if (userStocks.length === 0) {
-    return 'You do not hold any stocks in your portfolio. Go buy some!'
+    return 'You do not hold any stocks in your portfolio. Go buy some!';
   }
 
   userStocks.forEach((stock) => {
     result += `${stock.get('quantity')} ${stock.get('symbol')} @ ${formatNumber(
       stock.get('priceBought')
-    )}/share\n`
-  })
+    )}/share\n`;
+  });
 
-  result += '```'
+  result += '```';
 
-  return result
+  return result;
 }
 
 // #### PRIVATE FUNCTIONS ####
@@ -238,14 +244,14 @@ export async function ListStock(user: User): Promise<string> {
 async function GetUserData(
   userId: string
 ): Promise<Parse.User<Parse.Attributes> | undefined> {
-  return await new Parse.Query(Parse.User).equalTo('discordID', userId).first()
+  return await new Parse.Query(Parse.User).equalTo('discordID', userId).first();
 }
 
 async function GetUserStocksAsArray(userId: string) {
   return await new Parse.Query('StockLot')
     .equalTo('discordID', userId)
     .addDescending('symbol')
-    .find()
+    .find();
 }
 /**
  * creates a map of stocks with the same symbols. Primarily used by the Sell function
@@ -260,5 +266,5 @@ async function GetUserStocksAsMap(
     .equalTo('symbol', symbol)
     .equalTo('discordID', userId)
     .ascending('Date')
-    .find()
+    .find();
 }
