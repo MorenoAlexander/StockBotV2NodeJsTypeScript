@@ -1,4 +1,5 @@
 import { User } from 'discord.js';
+import Parse from 'parse/node';
 import ICrypto from '../interfaces/crypto/crypto';
 import { formatNumber } from '../utils/formatFunc';
 import Logger from '../utils/WinstonLogger';
@@ -7,7 +8,7 @@ import FinnhubService from './FinnhubService';
 const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
 export const GetCryptoQuote = async (SYMBOL: string): Promise<ICrypto> => {
-  return await finnhubClient.CryptoCandles(SYMBOL);
+  return finnhubClient.CryptoCandles(SYMBOL);
 };
 
 export const BuyCrypto = async (
@@ -16,7 +17,7 @@ export const BuyCrypto = async (
   SYMBOL: string
 ): Promise<string> => {
   try {
-    let cryptoQuote = await GetCryptoQuote(SYMBOL);
+    const cryptoQuote = await GetCryptoQuote(SYMBOL);
 
     const userData = await new Parse.Query(Parse.User)
       .equalTo('discordID', user.id)
@@ -27,12 +28,12 @@ export const BuyCrypto = async (
       );
     }
 
-    let costBasis = (cryptoQuote.c as number) * quantity;
-    let newUserBalance = userData.get('cash') - costBasis;
+    const costBasis = (cryptoQuote.c as number) * quantity;
+    const newUserBalance = userData.get('cash') - costBasis;
 
     if (newUserBalance >= 0) {
       // get user's crypto 'wallet' for this particular crypto
-      let userWalletData = await new Parse.Query('Wallet')
+      const userWalletData = await new Parse.Query('Wallet')
         .equalTo('symbol', SYMBOL)
         .equalTo('discordId', user.id)
         .first();
