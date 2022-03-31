@@ -1,10 +1,10 @@
 {
-  "main": "dist/src/app.js",
+  "main": "dist/app.js",
   "scripts": {
-    "dev": "nodemon dist/src/app.js",
+    "dev": "nodemon dist/app.js",
     "watch": "tsc -w",
     "build": "tsc",
-    "prod": "node dist/src/app.js",
+    "prod": "node dist/app.js",
     "docker": "docker-compose down -v && docker-compose up"
   },
   "dependencies": {
