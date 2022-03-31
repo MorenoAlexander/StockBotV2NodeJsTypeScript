@@ -10,11 +10,11 @@ const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
 export async function SignUp(user: User): Promise<string> {
   // get user, if in database: reset balance; otherwise, make new user and set their properties.
+  
+  let userInDB: Parse.User<Parse.Attributes> | undefined = await GetUserData(
+    user.id
+  );
 
-  const userInDB = await new Parse.Query(Parse.User)
-    .exists('discordID')
-    .equalTo('discordID', user.id)
-    .first();
 
   if (userInDB) {
     const dm = await user.createDM();
@@ -37,15 +37,16 @@ export async function SignUp(user: User): Promise<string> {
           } catch (err) {
             logger.error(err);
           }
-          userInDB.set('cash', 1000.0);
-          userInDB.save(null, { useMasterKey: true });
+          userInDB?.set('cash', 1000.0);
+          userInDB?.save(null, { useMasterKey: true });
+
           await dm.send('You account has been reset successfully');
         } else {
           await dm.send("Okay. I've canceled your request.");
         }
 
         return `Welcome to the market! Your starting balance is ${formatNumber(
-          userInDB.get('cash')
+          userInDB?.get('cash')
         )}`;
       })
       .catch((collected) =>
@@ -173,7 +174,8 @@ export async function SellStock(
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
     )}/sh for a total of ${formatNumber(credit)}!`;
-  } catch (e) {
+  } catch (e: any) {
+
     logger.error(e.message);
     return 'Error';
   }
@@ -244,7 +246,14 @@ export async function ListStock(user: User): Promise<string> {
 async function GetUserData(
   userId: string
 ): Promise<Parse.User<Parse.Attributes> | undefined> {
-  return await new Parse.Query(Parse.User).equalTo('discordID', userId).first();
+  try {
+    return await new Parse.Query(Parse.User)
+      .equalTo('discordID', userId)
+      .first();
+  } catch (e: any) {
+    logger.error(e.message);
+    return undefined;
+  }
 }
 
 async function GetUserStocksAsArray(userId: string) {
