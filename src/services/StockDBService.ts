@@ -10,9 +10,11 @@ const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
 export async function SignUp(user: User): Promise<string> {
   // get user, if in database: reset balance; otherwise, make new user and set their properties.
+  
   let userInDB: Parse.User<Parse.Attributes> | undefined = await GetUserData(
     user.id
   );
+
 
   if (userInDB) {
     const dm = await user.createDM();
@@ -37,6 +39,7 @@ export async function SignUp(user: User): Promise<string> {
           }
           userInDB?.set('cash', 1000.0);
           userInDB?.save(null, { useMasterKey: true });
+
           await dm.send('You account has been reset successfully');
         } else {
           await dm.send("Okay. I've canceled your request.");
@@ -172,6 +175,7 @@ export async function SellStock(
       quote.c
     )}/sh for a total of ${formatNumber(credit)}!`;
   } catch (e: any) {
+
     logger.error(e.message);
     return 'Error';
   }
