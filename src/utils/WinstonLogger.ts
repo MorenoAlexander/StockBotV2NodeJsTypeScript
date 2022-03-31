@@ -4,12 +4,12 @@ import Winston from 'winston';
 async function SendToSlack(info: any) {
   try {
     await axios.post(
-      'https://hooks.slack.com/services/' + process.env.SLACK_URL,
+      `https://hooks.slack.com/services/${process.env.SLACK_URL}`,
       { text: JSON.stringify(info) },
       { headers: { 'Content-Type': 'application/json' } }
     );
   } catch (e: any) {
-    console.log(e.message, e.config.url);
+    Winston.error(e);
   }
 }
 
@@ -21,7 +21,6 @@ const logger = Winston.createLogger({
     new Winston.transports.File({
       filename: 'combined.log',
       log: (info: any, next) => {
-        console.log(info);
         SendToSlack(info).then(() => next());
       },
     }),

@@ -12,6 +12,11 @@ import {
   SignUp,
 } from '../StockDBService';
 
+// which is better? Not sure.
+const asyncResponse = (action: string) => {
+  return `Fetching your ${action}...`;
+};
+
 export = [
   {
     name: 'signup',
@@ -134,8 +139,3 @@ export = [
     },
   },
 ];
-
-//which is better? Not sure.
-const asyncResponse = (action: string) => {
-  return `Fetching your ${action}...`;
-};
