@@ -38,37 +38,29 @@ export = [
     name: 'stock',
     description: 'test',
     async execute(message: Message, args: string[]) {
-      try {
-        if (args.length == 0) {
-          await message.reply('PLEASE INCLUDE A STOCK SYMBOL');
-          return;
-        }
-        const SYMBOL = args[0].toUpperCase();
-
-        GetQuote(SYMBOL).then((data: Quote) => {
-          message.channel.send(
-            `${SYMBOL}: $${data.c} ${formatPercentage(
-              ((data.c - data.pc) / data.pc) * 100
-            )}`
-          );
-        });
-      } catch (e) {
-        throw e;
+      if (args.length === 0) {
+        await message.reply('PLEASE INCLUDE A STOCK SYMBOL');
+        return;
       }
+      const SYMBOL = args[0].toUpperCase();
+
+      GetQuote(SYMBOL).then((data: Quote) => {
+        message.channel.send(
+          `${SYMBOL}: $${data.c} ${formatPercentage(
+            ((data.c - data.pc) / data.pc) * 100
+          )}`
+        );
+      });
     },
   },
   {
     name: 'balance',
     description: "Gets user's current balance",
-    async execute(message: Message, args: string[]) {
-      try {
-        const messageResponse = await message.reply(asyncResponse('balance'));
-        var val = await GetBalance(message.author);
+    async execute(message: Message) {
+      const messageResponse = await message.reply(asyncResponse('balance'));
+      const val = await GetBalance(message.author);
 
-        messageResponse.edit(formatNumber(val));
-      } catch (e) {
-        throw e;
-      }
+      messageResponse.edit(formatNumber(val));
     },
   },
   {
