@@ -1,4 +1,4 @@
-import Discord, { Client, ClientOptions } from 'discord.js';
+import Discord, { ClientOptions } from 'discord.js';
 import fs from 'fs';
 import { Manager } from '../interfaces/common/Manager';
 import logger from '../utils/WinstonLogger';
@@ -25,20 +25,19 @@ export class DiscordManager extends Discord.Client implements Manager {
   }
 
   collectCommands() {
-    // Set up commands
     this.commands = null;
     this.commands = new Discord.Collection();
 
     const commandFiles = fs
-      .readdirSync(__dirname + '/commands')
+      .readdirSync(`${__dirname}/commands`)
       .filter((file) => file.endsWith('.js'));
-    for (const file of commandFiles) {
-      const commands = require(__dirname + `/commands/${file}`);
 
-      for (const cmd of commands) {
+    commandFiles.forEach((file) => {
+      const commands: any[] = require(`${__dirname}/commands/${file}`);
+      commands.forEach((cmd) => {
         this.commands.set(cmd.name, cmd);
-      }
-    }
+      });
+    });
   }
 
   logIn(apiKey: string) {
@@ -60,7 +59,6 @@ export class DiscordManager extends Discord.Client implements Manager {
     this.app.get('/tests', (req: any, res: any) => {
       res.send('<h1>DISCORD REGISTERED</h1>');
     });
-    this.app.post('api/discord/gift', (req: any, res: any) => {});
 
     this.on('message', async (message) => {
       let args = [];
@@ -78,19 +76,20 @@ export class DiscordManager extends Discord.Client implements Manager {
       const command = args?.shift()?.toLowerCase();
       try {
         if (!this.commands.has(command)) {
-          message.channel.send('No such command exists. Sorry!');
+          await message.channel.send('No such command exists. Sorry!');
           return;
         }
-        await this.commands.get(command).execute(message, args);
+        await this.commands.get(command).execute(message);
       } catch (error: any) {
-        logger.error('Error during message:' + error?.message);
-        message.reply(
+        logger.error(`Error during message:${error?.message}`);
+        await message.reply(
           'An error occurred while attempting to execute command. Sumting Wong!'
         );
-        return;
       }
     });
 
     return true;
   }
 }
+
+export default DiscordManager;
