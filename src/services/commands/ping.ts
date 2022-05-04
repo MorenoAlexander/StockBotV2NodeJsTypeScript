@@ -4,14 +4,14 @@ export = [
   {
     name: 'ping',
     description: 'Pong!',
-    execute(message: any, args: any) {
+    execute(message: any) {
       message.channel.send('Pong.');
     },
   },
   {
     name: 'pong',
     description: 'Ping!',
-    execute(message: Message, args: any) {
+    execute(message: Message) {
       message.channel.send('Ping!');
     },
   },

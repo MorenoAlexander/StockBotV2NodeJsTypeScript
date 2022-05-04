@@ -29,6 +29,22 @@ async function GetUserStocksAsArray(userId: string) {
     .find();
 }
 
+/**
+ * creates a map of stocks with the same symbols. Primarily used by the Sell function
+ * @param userId
+ * @param symbol
+ */
+async function GetUserStocksAsMap(
+  userId: string,
+  symbol: string
+): Promise<Parse.Object<Parse.Attributes>[]> {
+  return new Parse.Query('StockLot')
+    .equalTo('symbol', symbol)
+    .equalTo('discordID', userId)
+    .ascending('Date')
+    .find();
+}
+
 async function createNewUser(user: User) {
   const newUser = new Parse.User();
   newUser.setUsername(user.username);
@@ -138,7 +154,7 @@ export async function BuyStock(
     stockLotPurchase.set('symbol', quotesymbol);
 
     userData.save(null, { useMasterKey: true });
-    stockLotPurchase.save(null, { useMasterKey: true });
+    await stockLotPurchase.save(null, { useMasterKey: true });
   } else {
     return `You cannot afford to purchase this, your balance is only ${formatNumber(
       balance
@@ -260,22 +276,4 @@ export async function ListStock(user: User): Promise<string> {
   result += '```';
 
   return result;
-}
-
-// #### PRIVATE FUNCTIONS ####
-
-/**
- * creates a map of stocks with the same symbols. Primarily used by the Sell function
- * @param userId
- * @param symbol
- */
-async function GetUserStocksAsMap(
-  userId: string,
-  symbol: string
-): Promise<Parse.Object<Parse.Attributes>[]> {
-  return new Parse.Query('StockLot')
-    .equalTo('symbol', symbol)
-    .equalTo('discordID', userId)
-    .ascending('Date')
-    .find();
 }
