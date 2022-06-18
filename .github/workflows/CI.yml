@@ -8,7 +8,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    branches: [master]
+    types: [opened, synchronize, reopened]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -48,3 +48,13 @@ jobs:
 
       - name: Build from source -- test for compilation errors
         run: npm run build
+  sonarQube:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
