@@ -6,7 +6,8 @@
     "build": "tsc",
     "prod": "node dist/app.js",
     "docker": "docker-compose down -v && docker-compose up",
-    "eslint": "eslint src --ext .ts,.js"
+    "eslint": "eslint src --ext .ts,.js",
+    "eslint:fix": "eslint src --ext .ts,.js --fix"
   },
   "dependencies": {
     "axios": "^0.21.2",

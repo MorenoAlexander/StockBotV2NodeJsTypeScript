@@ -39,8 +39,7 @@ export const BuyCrypto = async (
         .first();
 
       if (userWalletData === null) {
-        //Add data to DB?
-        let newWalletData = new (Parse.Object.extend(
+        const newWalletData = new (Parse.Object.extend(
           'Wallet'
         ))() as Parse.Object<Parse.Attributes>;
 
@@ -73,11 +72,11 @@ export const BuyCrypto = async (
       return `Successfully purchased ${quantity} ${SYMBOL} for a total of ${formatNumber(
         quantity * (cryptoQuote.c as number)
       )}!`;
-    } else {
-      return `You cannot afford to purhcase this, your balance is only ${formatNumber(
-        userData.get('cash')
-      )}!`;
     }
+
+    return `You cannot afford to purhcase this, your balance is only ${formatNumber(
+      userData.get('cash')
+    )}!`;
   } catch (error) {
     Logger.error(error);
     return `Sumting wong!`;
@@ -115,8 +114,6 @@ export const SellCrypto = async (
     if (UserWallet.get('quantity') - quantity < 0) {
       throw new Error(`User Wallet does not enough ${SYMBOL} funds`);
     }
-
-    //#endregion
 
     const marketValue = quantity * (cryptoQuote.c as number);
 

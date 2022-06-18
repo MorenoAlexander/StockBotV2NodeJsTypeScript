@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable import/no-dynamic-require */
 import Discord, { ClientOptions } from 'discord.js';
 import fs from 'fs';
-import { Manager } from '../interfaces/common/Manager';
+import Command from '../interfaces/common/command';
 import logger from '../utils/WinstonLogger';
 
-export class DiscordManager extends Discord.Client implements Manager {
+export class DiscordManager extends Discord.Client {
   commands: any;
 
   app: any;
@@ -33,7 +35,10 @@ export class DiscordManager extends Discord.Client implements Manager {
       .filter((file) => file.endsWith('.js'));
 
     commandFiles.forEach((file) => {
-      const commands: any[] = require(`${__dirname}/commands/${file}`);
+      // eslint-disable-next-line global-require
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line global-require
+      const commands: Command[] = require(`${__dirname}/commands/${file}`);
       commands.forEach((cmd) => {
         this.commands.set(cmd.name, cmd);
       });
@@ -56,7 +61,7 @@ export class DiscordManager extends Discord.Client implements Manager {
   setUp(app: any) {
     this.app = app;
 
-    this.app.get('/tests', (req: any, res: any) => {
+    this.app.get('/tests', (_req: any, res: any) => {
       res.send('<h1>DISCORD REGISTERED</h1>');
     });
 

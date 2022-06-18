@@ -11,7 +11,7 @@ import {
   SignUp,
 } from '../StockDBService';
 
-const asyncResponse = (action: string, preText: string = 'Fetching your') => {
+const asyncResponse = (action: string, preText = 'Fetching your') => {
   return `${preText} ${action}...`;
 };
 
@@ -76,7 +76,7 @@ export = [
     async execute(message: Message, args: string[]) {
       const messageResponse = await message.reply(asyncResponse('stock'));
       const SYMBOL = args[0].toUpperCase();
-      const quantity = parseInt(args[1]);
+      const quantity = parseInt(args[1], 10);
 
       const quote = await GetQuote(SYMBOL);
 
@@ -92,12 +92,12 @@ export = [
       try {
         const messageResponse = await message.reply(asyncResponse('SellOrder'));
         const SYMBOL = args[0].toUpperCase();
-        const quantity = parseInt(args[1]);
+        const quantity = parseInt(args[1], 10);
         const result = await SellStock(message.author, SYMBOL, quantity);
 
         await messageResponse.edit(result);
-      } catch (e: any) {
-        logger.error(e.message);
+      } catch (e: unknown) {
+        logger.error(e);
         throw e;
       }
     },
@@ -112,8 +112,8 @@ export = [
         );
         const result = await ListStock(message.author);
         await messageResponse.edit(result);
-      } catch (e: any) {
-        logger.info(`Error while listing stocks: ${e.message}`);
+      } catch (e: unknown) {
+        logger.info(`Error while listing stocks: ${e}`);
         throw e;
       }
     },

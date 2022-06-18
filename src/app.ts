@@ -1,13 +1,16 @@
+import { config } from 'dotenv';
+
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
+// @ts-expect-error this is installed
+import { ParseServer } from 'parse-server';
 import Parse from 'parse/node';
 import path from 'path';
 import StockAPI from './controllers/StockController';
 import { DiscordManager } from './services/DiscordManager';
 
-require('dotenv').config();
-const { ParseServer } = require('parse-server');
+config();
 
 const app = express();
 

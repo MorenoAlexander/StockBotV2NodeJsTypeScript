@@ -1,32 +1,28 @@
 import { Message } from 'discord.js';
-import { setAsyncStorage } from 'parse';
 import ICrypto from '../../interfaces/crypto/crypto';
-import { formatNumber, formatPercentage } from '../../utils/formatFunc';
+import { formatPercentage } from '../../utils/formatFunc';
 import logger from '../../utils/WinstonLogger';
 import { BuyCrypto, GetCryptoQuote, SellCrypto } from '../CryptoDBService';
+
 export = [
   {
     name: 'crypto',
     description: 'get a quote for a crypto currency',
     async execute(message: Message, args: string[]) {
-      try {
-        if (args.length === 0) {
-          await message.reply('PLEASE INCLUDE A CRYPTO SYMBOL');
-          return;
-        }
-        const SYMBOL = args[0].toUpperCase();
-
-        GetCryptoQuote(SYMBOL).then((data: ICrypto) => {
-          message.channel.send(
-            `${SYMBOL}: $${data.c} ${formatPercentage(
-              (((data.c as number) - (data.o as number)) / (data.o as number)) *
-                100
-            )}`
-          );
-        });
-      } catch (e) {
-        throw e;
+      if (args.length === 0) {
+        await message.reply('PLEASE INCLUDE A CRYPTO SYMBOL');
+        return;
       }
+      const SYMBOL = args[0].toUpperCase();
+
+      GetCryptoQuote(SYMBOL).then((data: ICrypto) => {
+        message.channel.send(
+          `${SYMBOL}: $${data.c} ${formatPercentage(
+            (((data.c as number) - (data.o as number)) / (data.o as number)) *
+              100
+          )}`
+        );
+      });
     },
   },
   {
