@@ -1,44 +1,48 @@
-import Discord, { Client, ClientOptions } from 'discord.js'
-import fs from 'fs'
-import { Manager } from '../interfaces/common/Manager'
-import logger from '../utils/WinstonLogger'
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable import/no-dynamic-require */
+import Discord, { ClientOptions } from 'discord.js';
+import fs from 'fs';
+import Command from '../interfaces/common/command';
+import logger from '../utils/WinstonLogger';
 
-export class DiscordManager extends Discord.Client implements Manager {
-  commands: any
+export class DiscordManager extends Discord.Client {
+  commands: any;
 
-  app: any
+  app: any;
 
   public constructor(options: ClientOptions = {}) {
-    super(options)
-    this.commands = null
+    super(options);
+    this.commands = null;
 
     this.on('ready', () => {
       logger.info(
         `Discord client established as ${
           this?.user?.tag != null ? this.user.tag : 'No user'
         }`
-      )
-    })
+      );
+    });
 
     // commands
-    this.collectCommands()
+    this.collectCommands();
   }
 
   collectCommands() {
-    // Set up commands
-    this.commands = null
-    this.commands = new Discord.Collection()
+    this.commands = null;
+    this.commands = new Discord.Collection();
 
     const commandFiles = fs
-      .readdirSync(__dirname + '/commands')
-      .filter((file) => file.endsWith('.js'))
-    for (const file of commandFiles) {
-      const commands = require(__dirname + `/commands/${file}`)
+      .readdirSync(`${__dirname}/commands`)
+      .filter((file) => file.endsWith('.js'));
 
-      for (const cmd of commands) {
-        this.commands.set(cmd.name, cmd)
-      }
-    }
+    commandFiles.forEach((file) => {
+      // eslint-disable-next-line global-require
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line global-require
+      const commands: Command[] = require(`${__dirname}/commands/${file}`);
+      commands.forEach((cmd) => {
+        this.commands.set(cmd.name, cmd);
+      });
+    });
   }
 
   logIn(apiKey: string) {
@@ -46,51 +50,51 @@ export class DiscordManager extends Discord.Client implements Manager {
       (success: any) => {
         logger.info(
           `Discord client connection successfully established: ${success}`
-        )
+        );
       },
       (rejected: any) => {
-        logger.error(rejected)
+        logger.error(rejected);
       }
-    )
+    );
   }
 
   setUp(app: any) {
-    this.app = app
+    this.app = app;
 
-    this.app.get('/tests', (req: any, res: any) => {
-      res.send('<h1>DISCORD REGISTERED</h1>')
-    })
-    this.app.post('api/discord/gift', (req: any, res: any) => {})
+    this.app.get('/tests', (_req: any, res: any) => {
+      res.send('<h1>DISCORD REGISTERED</h1>');
+    });
 
     this.on('message', async (message) => {
-      let args = []
+      let args = [];
       if (
         !message.content.startsWith(process.env.PREFIX as string) ||
         message.author.bot
       )
-        return
+        return;
 
       args = message.content
         .slice((process.env.PREFIX as string).length)
         .trim()
-        .split(/ +/)
+        .split(/ +/);
 
-      const command = args?.shift()?.toLowerCase()
+      const command = args?.shift()?.toLowerCase();
       try {
         if (!this.commands.has(command)) {
-          message.channel.send('No such command exists. Sorry!')
-          return
+          await message.channel.send('No such command exists. Sorry!');
+          return;
         }
-        await this.commands.get(command).execute(message, args)
-      } catch (error) {
-        logger.error('Error during message:' + error?.message)
-        message.reply(
+        await this.commands.get(command).execute(message);
+      } catch (error: any) {
+        logger.error(`Error during message:${error?.message}`);
+        await message.reply(
           'An error occurred while attempting to execute command. Sumting Wong!'
-        )
-        return
+        );
       }
-    })
+    });
 
-    return true
+    return true;
   }
 }
+
+export default DiscordManager;

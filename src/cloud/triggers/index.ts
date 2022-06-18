@@ -1,5 +1,6 @@
-import * as beforeSaves from './beforeSave'
+import Parse from 'parse/node';
+import * as beforeSaves from './beforeSave';
 
 export default function RegisterControllers() {
-  Parse.Cloud.beforeSave('StockLot', beforeSaves.StockLot)
+  Parse.Cloud.beforeSave('StockLot', beforeSaves.StockLot);
 }

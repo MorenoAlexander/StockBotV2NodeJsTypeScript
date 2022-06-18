@@ -2,13 +2,13 @@
 
 name: CI
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -26,10 +26,25 @@ jobs:
       - uses: actions/checkout@v2.4.0
       - uses: actions/setup-node@v2.5.0
         with:
-          node-version: 14
+          node-version: 16
+
+      # cache node_modules
+      - name: cache node Modules
+        uses: actions/cache@v3
+        with:
+          path: ~/node_modules
+          # The cache key is used to identify the contents of the cache between runs.
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json' )}}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       # Runs a single command using the runners shell
       - name: Install dependencies
         run: npm install
+
+      # run eslint
+      - name: run eslint
+        run: npm run eslint
 
       - name: Build from source -- test for compilation errors
         run: npm run build

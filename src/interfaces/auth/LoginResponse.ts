@@ -1,4 +1,4 @@
 export default interface LoginResponse {
-  cookie: string
-  status: number
+  cookie: string;
+  status: number;
 }
