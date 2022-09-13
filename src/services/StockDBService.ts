@@ -1,5 +1,4 @@
-import { User } from 'discord.js';
-import Parse from 'parse/node';
+import { PrismaClient, User } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import Quote from '../interfaces/stocks/quote';
 import StockLot from '../interfaces/stocks/StockLot';
@@ -7,26 +6,24 @@ import { formatNumber, formatPercentage } from '../utils/formatFunc';
 import logger from '../utils/WinstonLogger';
 import FinnhubService from './FinnhubService';
 
+const prismaClient = new PrismaClient();
+
 const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
-async function GetUserData(
-  userId: string
-): Promise<Parse.User<Parse.Attributes> | undefined> {
+async function GetUserData(userId: string): Promise<User | null> {
   try {
-    return await new Parse.Query(Parse.User)
-      .equalTo('discordID', userId)
-      .first({ useMasterKey: true });
-  } catch (e: any) {
+    return await prismaClient.user.findFirst({ where: { discordId: userId } });
+  } catch (e: { message: string }) {
     logger.error(e.message);
-    return undefined;
+    return null;
   }
 }
 
 async function GetUserStocksAsArray(userId: string) {
-  return new Parse.Query('StockLot')
-    .equalTo('discordID', userId)
-    .addDescending('symbol')
-    .find();
+  return prismaClient.stockLot.findMany({
+    where: { userId },
+    orderBy: { stockSymbol: 'desc' },
+  });
 }
 
 /**
