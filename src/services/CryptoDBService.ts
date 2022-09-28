@@ -1,5 +1,4 @@
 import { User } from 'discord.js';
-import Parse from 'parse/node';
 import ICrypto from '../interfaces/crypto/crypto';
 import { formatNumber } from '../utils/formatFunc';
 import Logger from '../utils/WinstonLogger';
