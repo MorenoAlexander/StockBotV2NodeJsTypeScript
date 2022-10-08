@@ -39,7 +39,15 @@ model StockLot {
   @@index([userId, stockSymbol, date(sort: Desc)], name: "user_stocklots")
 }
 
-
+// Wallet model should have a 1 to many relationship with User where the primary key is the discordId and crypto symbol
+model Wallet {
+  userId String 
+  cryptoSymbol String
+  costBasis Decimal @db.Money
+  averagePrice Decimal @db.Money
+  quantity Decimal @db.Money
+  @@id([userId, cryptoSymbol])
+}
 
 model UserActions {
   id       Int      @id @default(autoincrement())
