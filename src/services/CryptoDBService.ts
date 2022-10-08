@@ -40,7 +40,7 @@ export const BuyCrypto = async (
       });
 
       if (userWalletData === null) {
-        prismaClient.wallet.create({
+        await prismaClient.wallet.create({
           data: {
             cryptoSymbol: SYMBOL,
             averagePrice: cryptoQuote.c as number,
@@ -60,7 +60,7 @@ export const BuyCrypto = async (
           userWalletData.quantity
         );
 
-        prismaClient.wallet.update({
+        await prismaClient.wallet.update({
           where: {
             userId_cryptoSymbol: { cryptoSymbol: SYMBOL, userId: user.id },
           },
@@ -70,7 +70,7 @@ export const BuyCrypto = async (
 
       userData.cash = newUserBalance;
 
-      prismaClient.user.update({
+      await prismaClient.user.update({
         where: { discordId: user.id },
         data: userData,
       });
@@ -98,14 +98,13 @@ export const SellCrypto = async (
     const cryptoQuote: ICrypto = await GetCryptoQuote(SYMBOL);
 
     // determine how much of SYMBOL this user has
-    const userData = await new Parse.Query(Parse.User)
-      .equalTo('discordID', user.id)
-      .first();
+    const userData = await prismaClient.user.findFirst({
+      where: { discordId: user.id },
+    });
 
-    const UserWallet = await new Parse.Query('Wallet')
-      .equalTo('discordId', user.id)
-      .equalTo('symbol', SYMBOL)
-      .first();
+    const UserWallet = await prismaClient.wallet.findFirst({
+      where: { userId: user.id, cryptoSymbol: SYMBOL },
+    });
 
     // #region Validation checks
 
@@ -117,23 +116,31 @@ export const SellCrypto = async (
       throw new Error(`User Wallet for ${SYMBOL} not Found!`);
     }
 
-    if (UserWallet.get('quantity') - quantity < 0) {
+    if (UserWallet.quantity.sub(quantity).lessThan(0)) {
       throw new Error(`User Wallet does not enough ${SYMBOL} funds`);
     }
 
     const marketValue = quantity * (cryptoQuote.c as number);
 
-    UserWallet.set('quantity', UserWallet.get('quantity') - quantity);
-    userData.set('cash', userData.get('cash') + marketValue);
+    UserWallet.quantity = UserWallet.quantity.sub(quantity);
 
-    await UserWallet.save(null, { useMasterKey: true });
-    await userData.save(null, { useMasterKey: true });
+    userData.cash = userData.cash.add(marketValue);
+
+    await prismaClient.wallet.update({
+      where: { userId_cryptoSymbol: { userId: user.id, cryptoSymbol: SYMBOL } },
+      data: UserWallet,
+    });
+
+    await prismaClient.user.update({
+      where: { discordId: user.id },
+      data: userData,
+    });
 
     return `You've successfully sold ${quantity} ${SYMBOL} for a total of ${formatNumber(
       marketValue
     )}`;
-  } catch (error: any) {
+  } catch (error) {
     Logger.error(error);
-    return error.message;
+    return error.message as string;
   }
 };
