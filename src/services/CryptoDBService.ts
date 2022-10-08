@@ -1,9 +1,11 @@
+import { PrismaClient } from '@prisma/client';
 import { User } from 'discord.js';
 import ICrypto from '../interfaces/crypto/crypto';
 import { formatNumber } from '../utils/formatFunc';
 import Logger from '../utils/WinstonLogger';
 import FinnhubService from './FinnhubService';
 
+const prismaClient = new PrismaClient();
 const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
 export const GetCryptoQuote = async (SYMBOL: string): Promise<ICrypto> => {
@@ -18,9 +20,10 @@ export const BuyCrypto = async (
   try {
     const cryptoQuote = await GetCryptoQuote(SYMBOL);
 
-    const userData = await new Parse.Query(Parse.User)
-      .equalTo('discordID', user.id)
-      .first();
+    const userData = await prismaClient.user.findFirst({
+      where: { discordId: user.id },
+    });
+
     if (!userData) {
       throw new Error(
         'User not found in database! Please sign up and try again.'
@@ -28,53 +31,57 @@ export const BuyCrypto = async (
     }
 
     const costBasis = (cryptoQuote.c as number) * quantity;
-    const newUserBalance = userData.get('cash') - costBasis;
+    const newUserBalance = userData.cash.sub(costBasis);
 
-    if (newUserBalance >= 0) {
+    if (newUserBalance.greaterThanOrEqualTo(0)) {
       // get user's crypto 'wallet' for this particular crypto
-      const userWalletData = await new Parse.Query('Wallet')
-        .equalTo('symbol', SYMBOL)
-        .equalTo('discordId', user.id)
-        .first();
+      const userWalletData = await prismaClient.wallet.findFirst({
+        where: { cryptoSymbol: SYMBOL, AND: { userId: user.id } },
+      });
 
       if (userWalletData === null) {
-        const newWalletData = new (Parse.Object.extend(
-          'Wallet'
-        ))() as Parse.Object<Parse.Attributes>;
-
-        newWalletData.set('averagePrice', cryptoQuote.c as number);
-        newWalletData.set('costBasis', quantity * (cryptoQuote.c as number));
-        newWalletData.set('quantity', quantity);
-        newWalletData.set('discordId', user.id); // TODO: Fixed column name to match rest of database
-        newWalletData.set('user', userData.toPointer());
-        await newWalletData.save(null, { useMasterKey: true });
+        prismaClient.wallet.create({
+          data: {
+            cryptoSymbol: SYMBOL,
+            averagePrice: cryptoQuote.c as number,
+            costBasis: quantity * (cryptoQuote.c as number),
+            quantity,
+            userId: user.id,
+          },
+        });
       } else {
-        userWalletData?.set(
-          'cosBasis',
-          userWalletData.get('costBasis') + quantity * (cryptoQuote.c as number)
-        );
-        userWalletData?.set(
-          'quantity',
-          userWalletData.get('quantity') + quantity
-        );
-        userWalletData?.set(
-          'averagePrice',
-          userWalletData.get('costBasis') / userWalletData.get('quantity')
+        userWalletData.costBasis = userWalletData.costBasis.add(
+          userWalletData.quantity.mul(cryptoQuote.c as number)
         );
 
-        await userWalletData?.save(null, { useMasterKey: true });
+        userWalletData.quantity = userWalletData.quantity.add(quantity);
+
+        userWalletData.averagePrice = userWalletData.costBasis.div(
+          userWalletData.quantity
+        );
+
+        prismaClient.wallet.update({
+          where: {
+            userId_cryptoSymbol: { cryptoSymbol: SYMBOL, userId: user.id },
+          },
+          data: userWalletData,
+        });
       }
 
-      userData.set('cash', newUserBalance);
-      userData.save(null, { useMasterKey: true });
+      userData.cash = newUserBalance;
+
+      prismaClient.user.update({
+        where: { discordId: user.id },
+        data: userData,
+      });
 
       return `Successfully purchased ${quantity} ${SYMBOL} for a total of ${formatNumber(
         quantity * (cryptoQuote.c as number)
       )}!`;
     }
 
-    return `You cannot afford to purhcase this, your balance is only ${formatNumber(
-      userData.get('cash')
+    return `You cannot afford to purchase this, your balance is only ${formatNumber(
+      userData.cash.toNumber()
     )}!`;
   } catch (error) {
     Logger.error(error);
