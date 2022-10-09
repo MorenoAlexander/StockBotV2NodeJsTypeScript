@@ -1,5 +1,5 @@
 import { PrismaClient, User } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
+import type { User as DiscordUser } from 'discord.js';
 import Quote from '../interfaces/stocks/quote';
 import StockLot from '../interfaces/stocks/StockLot';
 import { formatNumber, formatPercentage } from '../utils/formatFunc';
@@ -13,8 +13,8 @@ const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 async function GetUserData(userId: string): Promise<User | null> {
   try {
     return await prismaClient.user.findFirst({ where: { discordId: userId } });
-  } catch (e: { message: string }) {
-    logger.error(e.message);
+  } catch (error) {
+    logger.error(error);
     return null;
   }
 }
@@ -42,22 +42,22 @@ async function GetUserStocksAsMap(
     .find();
 }
 
-async function createNewUser(user: User) {
-  const newUser = new Parse.User();
-  newUser.setUsername(user.username);
-  const pass = uuidv4();
-  newUser.setPassword(pass);
-  newUser.set('discordID', user.id);
-  newUser.set('cash', 1000.0);
-  newUser.save(null, { useMasterKey: true });
+async function createNewUser(user: DiscordUser) {
+  const newUser = await prismaClient.user.create({
+    data: {
+      discordId: user.id,
+      username: user.username,
+      cash: 1000.0,
+    },
+  });
   await (
     await user.createDM()
   ).send(
-    `Welcome to StockBot. Your account has been created successfully. Use this pass code to access your account on the dashboard.${pass}`
+    `Welcome to StockBot. Your account has been created successfully. Your starting balance is $1000.00.`
   );
 
   return `Welcome to the market! Your starting balance is ${formatNumber(
-    newUser.get('cash')
+    newUser.cash.toNumber()
   )}`;
 }
 
