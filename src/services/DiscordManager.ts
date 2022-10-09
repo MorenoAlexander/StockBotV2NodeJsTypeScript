@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable import/no-dynamic-require */
 import Discord, { ClientOptions } from 'discord.js';
-import type { Application } from 'express';
+import type { Application, Request, Response } from 'express';
 import fs from 'fs';
 import Command from '../interfaces/common/command';
 import logger from '../utils/WinstonLogger';
@@ -62,7 +62,7 @@ export class DiscordManager extends Discord.Client {
   setUp(app: Application) {
     this.app = app;
 
-    this.app.get('/tests', (_req: any, res: any) => {
+    this.app.get('/tests', (_req: Request, res: Response) => {
       res.send('<h1>DISCORD REGISTERED</h1>');
     });
 
