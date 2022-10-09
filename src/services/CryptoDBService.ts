@@ -141,6 +141,6 @@ export const SellCrypto = async (
     )}`;
   } catch (error) {
     Logger.error(error);
-    return error.message as string;
+    return `Error while selling ${SYMBOL}, please try again later!`;
   }
 };
