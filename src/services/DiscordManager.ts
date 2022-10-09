@@ -48,7 +48,7 @@ export class DiscordManager extends Discord.Client {
 
   logIn(apiKey: string) {
     this.login(apiKey).then(
-      (success: any) => {
+      (success: string) => {
         logger.info(
           `Discord client connection successfully established: ${success}`
         );
