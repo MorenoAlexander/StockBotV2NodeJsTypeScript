@@ -1,7 +1,6 @@
-import { PrismaClient, User } from '@prisma/client';
+import { PrismaClient, User, StockLot } from '@prisma/client';
 import type { User as DiscordUser } from 'discord.js';
 import Quote from '../interfaces/stocks/quote';
-import StockLot from '../interfaces/stocks/StockLot';
 import { formatNumber, formatPercentage } from '../utils/formatFunc';
 import logger from '../utils/WinstonLogger';
 import FinnhubService from './FinnhubService';
@@ -27,19 +26,17 @@ async function GetUserStocksAsArray(userId: string) {
 }
 
 /**
- * creates a map of stocks with the same symbols. Primarily used by the Sell function
+ * creates a array of stock lots  with the same symbols. Primarily used by the Sell function
  * @param userId
  * @param symbol
  */
 async function GetUserStocksAsMap(
   userId: string,
-  symbol: string
-): Promise<Parse.Object<Parse.Attributes>[]> {
-  return new Parse.Query('StockLot')
-    .equalTo('symbol', symbol)
-    .equalTo('discordID', userId)
-    .ascending('Date')
-    .find();
+  symbol: string): Promise<StockLot[]> {
+  return prismaClient.stockLot.findMany({
+    where: { userId, stockSymbol: symbol },
+    orderBy: { date: 'asc' },
+  });
 }
 
 async function createNewUser(user: DiscordUser) {
@@ -61,7 +58,7 @@ async function createNewUser(user: DiscordUser) {
   )}`;
 }
 
-export async function SignUp(user: User): Promise<string> {
+export async function SignUp(user: DiscordUser): Promise<string> {
   // get user, if in database: reset balance; otherwise, make new user and set their properties.
 
   const userInDB: Parse.User<Parse.Attributes> | undefined = await GetUserData(
