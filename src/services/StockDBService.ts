@@ -1,4 +1,4 @@
-import { PrismaClient, User, StockLot } from '@prisma/client';
+import { PrismaClient, StockLot, User } from '@prisma/client';
 import type { User as DiscordUser } from 'discord.js';
 import Quote from '../interfaces/stocks/quote';
 import { formatNumber, formatPercentage } from '../utils/formatFunc';
@@ -32,7 +32,8 @@ async function GetUserStocksAsArray(userId: string) {
  */
 async function GetUserStocksAsMap(
   userId: string,
-  symbol: string): Promise<StockLot[]> {
+  symbol: string
+): Promise<StockLot[]> {
   return prismaClient.stockLot.findMany({
     where: { userId, stockSymbol: symbol },
     orderBy: { date: 'asc' },
@@ -61,14 +62,12 @@ async function createNewUser(user: DiscordUser) {
 export async function SignUp(user: DiscordUser): Promise<string> {
   // get user, if in database: reset balance; otherwise, make new user and set their properties.
 
-  const userInDB: Parse.User<Parse.Attributes> | undefined = await GetUserData(
-    user.id
-  );
+  const userInDB: User | null = await GetUserData(user.id);
 
   if (userInDB) {
     const dm = await user.createDM();
     dm.send(
-      'You seem to be already signed up. This action will reset your account. Please respond with Y/N.'
+      'You seem to be already signed up. This action will reset your account, are you sure?. Please respond with Y/N.'
     );
     dm.awaitMessages((m) => /[yYnN]/.test(m.content) && !m.author.bot, {
       max: 1,
@@ -78,11 +77,9 @@ export async function SignUp(user: DiscordUser): Promise<string> {
       .then(async (collected) => {
         if (collected.first()?.content.startsWith('Y')) {
           try {
-            const allStocks = await new Parse.Query('StockLot')
-              .equalTo('discordID', user.id)
-              .find();
-
-            await Parse.Object.destroyAll(allStocks, { useMasterKey: true });
+            await prismaClient.stockLot.deleteMany({
+              where: { userId: user.id },
+            });
           } catch (err) {
             logger.error(err);
           }
