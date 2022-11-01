@@ -85,7 +85,7 @@ export class DiscordManager extends Discord.Client {
           await message.channel.send('No such command exists. Sorry!');
           return;
         }
-        await this.commands?.get(command || '')?.execute(message);
+        await this.commands?.get(command || '')?.execute(message, args);
       } catch (error) {
         logger.error(`Error during message:${error}`);
         await message.reply(
