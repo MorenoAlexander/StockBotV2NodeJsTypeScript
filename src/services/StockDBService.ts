@@ -154,7 +154,7 @@ export async function BuyStock(
 }
 
 export async function SellStock(
-  user: User,
+  user: DiscordUser,
   quotesymbol: string,
   orderCount: number
 ): Promise<string> {
@@ -165,30 +165,39 @@ export async function SellStock(
     const quote = await GetQuote(quotesymbol);
 
     const stockPromises = userStocks.map(async (stock) => {
-      if (stock.get('quantity') >= orderCount - stocksSold) {
-        stock.set('quantity', stock.get('quantity') - orderCount - stocksSold);
+      let currentQuantity = stock.quantity;
+      if (currentQuantity >= orderCount - stocksSold) {
+        currentQuantity = currentQuantity - orderCount - stocksSold;
         stocksSold += orderCount - stocksSold;
       } else if (
-        stock.get('quantity') <= orderCount - stocksSold &&
-        stock.get('quantity') >= 1
+        stock.quantity <= orderCount - stocksSold &&
+        stock.quantity >= 1
       ) {
-        stocksSold += stock.get('quantity');
-        stock.set('quantity', 0);
+        stocksSold += stock.quantity;
+        currentQuantity = 0;
       }
 
-      if (stock.get('quantity') <= 0) {
-        return stock.destroy({ useMasterKey: true });
+      if (currentQuantity <= 0) {
+        return prismaClient.stockLot.delete({
+          where: { id: stock.id },
+        });
       }
-      return stock.save(null, { useMasterKey: true });
+      return prismaClient.stockLot.update({
+        where: { id: stock.id },
+        data: { quantity: currentQuantity },
+      });
     });
 
     await Promise.all(stockPromises);
 
-    let balance = userData?.get('cash') || 0.0;
+    let balance = userData?.cash.toNumber() || 0.0;
     const credit = stocksSold * quote.c;
     balance += credit;
-    userData?.set('cash', balance);
-    await userData?.save(null, { useMasterKey: true });
+
+    await prismaClient.user.update({
+      where: { discordId: user.id },
+      data: { cash: new Decimal(balance) },
+    });
 
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
@@ -203,27 +212,27 @@ export async function SellStock(
  * Fetches user's stocks, calculates the total portfolio value &
  * @param user
  */
-export async function CalculatePortforlio(user: User): Promise<string> {
+export async function CalculatePortforlio(user: DiscordUser): Promise<string> {
   const userStocks = await GetUserStocksAsArray(user.id);
 
   // caclulate total market value and costBasis
   let marketVal = 0.0;
   let costBasis = 0.0;
-  const priceCache = new Map<string, number>();
+  const priceMap = new Map<string, number>();
 
   (
     await Promise.all(
-      userStocks.map(async (stockLot: Parse.Object<Parse.Attributes>) => {
-        const symbol = stockLot.get('symbol');
+      userStocks.map(async (stockLot: StockLot) => {
+        const symbol = stockLot.stockSymbol;
         let quote = null;
-        if (!priceCache.has(symbol)) {
+        if (!priceMap.has(symbol)) {
           quote = await GetQuote(symbol);
-          priceCache.set(symbol, quote.c);
+          priceMap.set(symbol, quote.c);
         }
 
         return {
-          marketVal: stockLot.get('quantity') * (priceCache.get(symbol) || 0.0),
-          costBasis: stockLot.get('quantity') * stockLot.get('priceBought'),
+          marketVal: stockLot.quantity * (priceMap.get(symbol) || 0.0),
+          costBasis: stockLot.quantity * stockLot.priceBought.toNumber(),
         };
       })
     )
@@ -239,15 +248,17 @@ export async function CalculatePortforlio(user: User): Promise<string> {
   )} ${formatPercentage(PnL)}`;
 }
 
-export async function GetBalance(user: User): Promise<number> {
+export async function GetBalance(user: DiscordUser): Promise<number> {
   return (
     (
-      await new Parse.Query(Parse.User).equalTo('discordID', user.id).first()
-    )?.get('cash') || 0.0
+      await prismaClient.user.findUnique({
+        where: { discordId: user.id },
+      })
+    )?.cash.toNumber() || 0.0
   );
 }
 
-export async function ListStock(user: User): Promise<string> {
+export async function ListStock(user: DiscordUser): Promise<string> {
   let result = '```';
   const userStocks = await GetUserStocksAsArray(user.id);
   if (userStocks.length === 0) {
@@ -255,8 +266,8 @@ export async function ListStock(user: User): Promise<string> {
   }
 
   userStocks.forEach((stock) => {
-    result += `${stock.get('quantity')} ${stock.get('symbol')} @ ${formatNumber(
-      stock.get('priceBought')
+    result += `${stock.quantity} ${stock.stockSymbol} @ ${formatNumber(
+      stock.priceBought.toNumber()
     )}/share\n`;
   });
 
