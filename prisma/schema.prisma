@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  discordId   String        @id @unique
+  username    String?
+  cash        Decimal       @db.Money
+  StockLot    StockLot[]
+  UserActions UserActions[]
+  StocksOwned Stock[]       @relation("StocksOwned")
+}
+
+model Stock {
+  symbol   String     @id @unique
+  name     String
+  StockLot StockLot[]
+  Users    User[]     @relation("StocksOwned")
+}
+
+model StockLot {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [discordId])
+  userId      String
+  quantity    Int
+  priceBought Decimal  @db.Money
+  stockSymbol String   
+  stock       Stock    @relation(fields: [stockSymbol], references: [symbol])
+
+  @@index([userId, stockSymbol, date(sort: Desc)], name: "user_stocklots")
+}
+
+// Wallet model should have a 1 to many relationship with User where the primary key is the discordId and crypto symbol
+model Wallet {
+  userId String 
+  cryptoSymbol String
+  costBasis Decimal @db.Money
+  averagePrice Decimal @db.Money
+  quantity Decimal @db.Money
+  @@id([userId, cryptoSymbol])
+}
+
+model UserActions {
+  id       Int      @id @default(autoincrement())
+  user     User     @relation(fields: [userId], references: [discordId])
+  userId   String
+  action   Action
+  actionId Int
+  date     DateTime @default(now())
+}
+
+enum Action {
+  BUY
+  SELL
+  RESET
+}

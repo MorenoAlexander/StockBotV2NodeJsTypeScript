@@ -3,10 +3,6 @@ import { config } from 'dotenv';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import express from 'express';
-// @ts-expect-error this is installed
-import { ParseServer } from 'parse-server';
-import Parse from 'parse/node';
-import path from 'path';
 import StockAPI from './controllers/StockController';
 import { DiscordManager } from './services/DiscordManager';
 
@@ -16,20 +12,6 @@ const app = express();
 
 // Discord class
 const discordManager = new DiscordManager();
-
-// Initialize  Parse API
-
-const api = new ParseServer({
-  appName: 'StockBot',
-  databaseURI: process.env.DATABASE_URI,
-  cloud: path.join(__dirname, '/cloud/main.js'),
-  appId: process.env.APP_ID || 'TEMP_APP_ID',
-  masterKey: process.env.MASTER_KEY || 'DEV_MASTER_KEY',
-  serverURL: process.env.SERVER_URL || 'http://localhost:17419/parse',
-  sessionLength: 86400 * 2,
-});
-
-app.use('/parse', api);
 
 /** Register middleware ********* */
 
@@ -56,10 +38,3 @@ app.listen(process.env.PORT, async () => {
 app.get('/', (req, res) => {
   res.send('<h1>DISCORD REGISTERED</h1>');
 });
-
-Parse.initialize(
-  process.env.APP_ID || 'TEMP_APP_ID',
-  undefined,
-  process.env.MASTER_KEY || 'DEV_MASTER_KEY'
-);
-Parse.serverURL = process.env.SERVER_URL || 'http://localhost:17419/parse';

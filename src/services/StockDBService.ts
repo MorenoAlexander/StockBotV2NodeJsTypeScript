@@ -1,80 +1,76 @@
-import { User } from 'discord.js';
-import Parse from 'parse/node';
-import { v4 as uuidv4 } from 'uuid';
+import { PrismaClient, StockLot, User } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime';
+import type { User as DiscordUser } from 'discord.js';
 import Quote from '../interfaces/stocks/quote';
-import StockLot from '../interfaces/stocks/StockLot';
 import { formatNumber, formatPercentage } from '../utils/formatFunc';
 import logger from '../utils/WinstonLogger';
 import FinnhubService from './FinnhubService';
 
+const prismaClient = new PrismaClient();
+
 const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
-async function GetUserData(
-  userId: string
-): Promise<Parse.User<Parse.Attributes> | undefined> {
+async function GetUserData(userId: string): Promise<User | null> {
   try {
-    return await new Parse.Query(Parse.User)
-      .equalTo('discordID', userId)
-      .first({ useMasterKey: true });
-  } catch (e: any) {
-    logger.error(e.message);
-    return undefined;
+    return await prismaClient?.user.findUnique({
+      where: { discordId: userId },
+    });
+  } catch (error) {
+    logger.error(error);
+    return null;
   }
 }
 
 async function GetUserStocksAsArray(userId: string) {
-  return new Parse.Query('StockLot')
-    .equalTo('discordID', userId)
-    .addDescending('symbol')
-    .find();
+  return prismaClient.stockLot.findMany({
+    where: { userId },
+    orderBy: { stockSymbol: 'desc' },
+  });
 }
 
 /**
- * creates a map of stocks with the same symbols. Primarily used by the Sell function
+ * creates a array of stock lots  with the same symbols. Primarily used by the Sell function
  * @param userId
  * @param symbol
  */
 async function GetUserStocksAsMap(
   userId: string,
   symbol: string
-): Promise<Parse.Object<Parse.Attributes>[]> {
-  return new Parse.Query('StockLot')
-    .equalTo('symbol', symbol)
-    .equalTo('discordID', userId)
-    .ascending('Date')
-    .find();
+): Promise<StockLot[]> {
+  return prismaClient.stockLot.findMany({
+    where: { userId, stockSymbol: symbol },
+    orderBy: { date: 'asc' },
+  });
 }
 
-async function createNewUser(user: User) {
-  const newUser = new Parse.User();
-  newUser.setUsername(user.username);
-  const pass = uuidv4();
-  newUser.setPassword(pass);
-  newUser.set('discordID', user.id);
-  newUser.set('cash', 1000.0);
-  newUser.save(null, { useMasterKey: true });
+async function createNewUser(user: DiscordUser) {
+  const newUser = await prismaClient.user.create({
+    data: {
+      discordId: user.id,
+      username: user.username,
+      cash: 1000.0,
+    },
+  });
   await (
     await user.createDM()
   ).send(
-    `Welcome to StockBot. Your account has been created successfully. Use this pass code to access your account on the dashboard.${pass}`
+    `Welcome to StockBot. Your account has been created successfully. Your starting balance is $1000.00.`
   );
 
   return `Welcome to the market! Your starting balance is ${formatNumber(
-    newUser.get('cash')
+    newUser.cash.toNumber()
   )}`;
 }
 
-export async function SignUp(user: User): Promise<string> {
+export async function SignUp(user: DiscordUser): Promise<string> {
   // get user, if in database: reset balance; otherwise, make new user and set their properties.
 
-  const userInDB: Parse.User<Parse.Attributes> | undefined = await GetUserData(
-    user.id
-  );
+  let userInDB: User | null = await GetUserData(user.id);
 
   if (userInDB) {
     const dm = await user.createDM();
     dm.send(
-      'You seem to be already signed up. This action will reset your account. Please respond with Y/N.'
+      'You seem to be already signed up. This action will reset your account, are you sure?. Please respond with Y/N.'
     );
     dm.awaitMessages((m) => /[yYnN]/.test(m.content) && !m.author.bot, {
       max: 1,
@@ -84,24 +80,24 @@ export async function SignUp(user: User): Promise<string> {
       .then(async (collected) => {
         if (collected.first()?.content.startsWith('Y')) {
           try {
-            const allStocks = await new Parse.Query('StockLot')
-              .equalTo('discordID', user.id)
-              .find();
-
-            await Parse.Object.destroyAll(allStocks, { useMasterKey: true });
+            await prismaClient.stockLot.deleteMany({
+              where: { userId: user.id },
+            });
           } catch (err) {
             logger.error(err);
           }
-          userInDB?.set('cash', 1000.0);
-          userInDB?.save(null, { useMasterKey: true });
 
+          userInDB = await prismaClient.user.update({
+            where: { discordId: user.id },
+            data: { cash: 1000.0 },
+          });
           await dm.send('You account has been reset successfully');
         } else {
           await dm.send("Okay. I've canceled your request.");
         }
 
         return `Welcome to the market! Your starting balance is ${formatNumber(
-          userInDB?.get('cash')
+          userInDB?.cash.toNumber() || 0
         )}`;
       })
       .catch((collected) =>
@@ -118,56 +114,57 @@ export async function GetQuote(SYMBOL: string) {
 }
 
 export async function BuyStock(
-  user: User,
+  user: DiscordUser,
   quote: Quote,
   quotesymbol: string,
   orderCount: number
 ): Promise<string> {
-  const newStockLot = {
-    ID: user.id,
-    Date: new Date().toUTCString(),
-    quantity: orderCount,
-    priceBought: quote.c,
-    symbol: quotesymbol,
-    GUID: user.avatar,
-  } as StockLot;
   const userData = await GetUserData(user.id);
+  await prismaClient.stock.upsert({
+    where: { symbol: quotesymbol },
+    update: {},
+    create: {
+      symbol: quotesymbol,
+      name: quotesymbol.toUpperCase(),
+    },
+  });
 
   if (!userData) {
     throw new Error('User is not valid. Sign up first.');
   }
 
-  let balance = userData.get('cash');
-  const cost = newStockLot.priceBought * newStockLot.quantity;
+  let balance = userData.cash.toNumber();
+  const cost = quote.c * orderCount;
 
   if (balance >= cost) {
     balance -= cost;
-    userData.set('cash', balance);
-    const stockLotPurchase = new (Parse.Object.extend(
-      'StockLot'
-    ))() as Parse.Object<Parse.Attributes>;
-    stockLotPurchase.set('Date', new Date().toISOString());
-    stockLotPurchase.set('discordID', user.id);
-    stockLotPurchase.set('GUID', user.avatar);
-    stockLotPurchase.set('priceBought', quote.c);
-    stockLotPurchase.set('quantity', orderCount);
-    stockLotPurchase.set('symbol', quotesymbol);
+    await prismaClient.user.update({
+      where: { discordId: user.id },
+      data: { cash: new Decimal(balance) },
+    });
 
-    userData.save(null, { useMasterKey: true });
-    await stockLotPurchase.save(null, { useMasterKey: true });
-  } else {
-    return `You cannot afford to purchase this, your balance is only ${formatNumber(
-      balance
-    )}`;
+    await prismaClient.stockLot.create({
+      data: {
+        userId: user.id,
+        date: new Date(),
+        quantity: orderCount,
+        priceBought: new Decimal(quote.c),
+        stockSymbol: quotesymbol,
+      },
+    });
+
+    return `You've Successfully purchased ${orderCount} shares of ${quotesymbol} @ ${formatNumber(
+      quote.c
+    )}/share for a total cost of ${formatNumber(cost)}!`;
   }
 
-  return `You've Successfully purchased ${orderCount} shares of ${quotesymbol} @ ${formatNumber(
-    newStockLot.priceBought
-  )}/share for a total cost of ${formatNumber(cost)}!`;
+  return `You cannot afford to purchase this, your balance is only ${formatNumber(
+    balance
+  )}`;
 }
 
 export async function SellStock(
-  user: User,
+  user: DiscordUser,
   quotesymbol: string,
   orderCount: number
 ): Promise<string> {
@@ -178,30 +175,39 @@ export async function SellStock(
     const quote = await GetQuote(quotesymbol);
 
     const stockPromises = userStocks.map(async (stock) => {
-      if (stock.get('quantity') >= orderCount - stocksSold) {
-        stock.set('quantity', stock.get('quantity') - orderCount - stocksSold);
+      let currentQuantity = stock.quantity;
+      if (currentQuantity >= orderCount - stocksSold) {
+        currentQuantity = currentQuantity - orderCount - stocksSold;
         stocksSold += orderCount - stocksSold;
       } else if (
-        stock.get('quantity') <= orderCount - stocksSold &&
-        stock.get('quantity') >= 1
+        stock.quantity <= orderCount - stocksSold &&
+        stock.quantity >= 1
       ) {
-        stocksSold += stock.get('quantity');
-        stock.set('quantity', 0);
+        stocksSold += stock.quantity;
+        currentQuantity = 0;
       }
 
-      if (stock.get('quantity') <= 0) {
-        return stock.destroy({ useMasterKey: true });
+      if (currentQuantity <= 0) {
+        return prismaClient.stockLot.delete({
+          where: { id: stock.id },
+        });
       }
-      return stock.save(null, { useMasterKey: true });
+      return prismaClient.stockLot.update({
+        where: { id: stock.id },
+        data: { quantity: currentQuantity },
+      });
     });
 
     await Promise.all(stockPromises);
 
-    let balance = userData?.get('cash') || 0.0;
+    let balance = userData?.cash.toNumber() || 0.0;
     const credit = stocksSold * quote.c;
     balance += credit;
-    userData?.set('cash', balance);
-    await userData?.save(null, { useMasterKey: true });
+
+    await prismaClient.user.update({
+      where: { discordId: user.id },
+      data: { cash: new Decimal(balance) },
+    });
 
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
@@ -216,27 +222,27 @@ export async function SellStock(
  * Fetches user's stocks, calculates the total portfolio value &
  * @param user
  */
-export async function CalculatePortforlio(user: User): Promise<string> {
+export async function CalculatePortforlio(user: DiscordUser): Promise<string> {
   const userStocks = await GetUserStocksAsArray(user.id);
 
   // caclulate total market value and costBasis
   let marketVal = 0.0;
   let costBasis = 0.0;
-  const priceCache = new Map<string, number>();
+  const priceMap = new Map<string, number>();
 
   (
     await Promise.all(
-      userStocks.map(async (stockLot: Parse.Object<Parse.Attributes>) => {
-        const symbol = stockLot.get('symbol');
+      userStocks.map(async (stockLot: StockLot) => {
+        const symbol = stockLot.stockSymbol;
         let quote = null;
-        if (!priceCache.has(symbol)) {
+        if (!priceMap.has(symbol)) {
           quote = await GetQuote(symbol);
-          priceCache.set(symbol, quote.c);
+          priceMap.set(symbol, quote.c);
         }
 
         return {
-          marketVal: stockLot.get('quantity') * (priceCache.get(symbol) || 0.0),
-          costBasis: stockLot.get('quantity') * stockLot.get('priceBought'),
+          marketVal: stockLot.quantity * (priceMap.get(symbol) || 0.0),
+          costBasis: stockLot.quantity * stockLot.priceBought.toNumber(),
         };
       })
     )
@@ -252,15 +258,17 @@ export async function CalculatePortforlio(user: User): Promise<string> {
   )} ${formatPercentage(PnL)}`;
 }
 
-export async function GetBalance(user: User): Promise<number> {
+export async function GetBalance(user: DiscordUser): Promise<number> {
   return (
     (
-      await new Parse.Query(Parse.User).equalTo('discordID', user.id).first()
-    )?.get('cash') || 0.0
+      await prismaClient.user.findUnique({
+        where: { discordId: user.id },
+      })
+    )?.cash.toNumber() || 0.0
   );
 }
 
-export async function ListStock(user: User): Promise<string> {
+export async function ListStock(user: DiscordUser): Promise<string> {
   let result = '```';
   const userStocks = await GetUserStocksAsArray(user.id);
   if (userStocks.length === 0) {
@@ -268,8 +276,8 @@ export async function ListStock(user: User): Promise<string> {
   }
 
   userStocks.forEach((stock) => {
-    result += `${stock.get('quantity')} ${stock.get('symbol')} @ ${formatNumber(
-      stock.get('priceBought')
+    result += `${stock.quantity} ${stock.stockSymbol} @ ${formatNumber(
+      stock.priceBought.toNumber()
     )}/share\n`;
   });
 

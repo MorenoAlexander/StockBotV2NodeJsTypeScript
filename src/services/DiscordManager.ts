@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable import/no-dynamic-require */
 import Discord, { ClientOptions } from 'discord.js';
+import type { Application, Request, Response } from 'express';
 import fs from 'fs';
 import Command from '../interfaces/common/command';
 import logger from '../utils/WinstonLogger';
 
 export class DiscordManager extends Discord.Client {
-  commands: any;
+  commands: Discord.Collection<string, Command> | null;
 
-  app: any;
+  app!: Application;
 
   public constructor(options: ClientOptions = {}) {
     super(options);
@@ -40,28 +41,28 @@ export class DiscordManager extends Discord.Client {
       // eslint-disable-next-line global-require
       const commands: Command[] = require(`${__dirname}/commands/${file}`);
       commands.forEach((cmd) => {
-        this.commands.set(cmd.name, cmd);
+        this.commands?.set(cmd.name, cmd);
       });
     });
   }
 
   logIn(apiKey: string) {
     this.login(apiKey).then(
-      (success: any) => {
+      (success: string) => {
         logger.info(
           `Discord client connection successfully established: ${success}`
         );
       },
-      (rejected: any) => {
+      (rejected: unknown) => {
         logger.error(rejected);
       }
     );
   }
 
-  setUp(app: any) {
+  setUp(app: Application) {
     this.app = app;
 
-    this.app.get('/tests', (_req: any, res: any) => {
+    this.app.get('/tests', (_req: Request, res: Response) => {
       res.send('<h1>DISCORD REGISTERED</h1>');
     });
 
@@ -80,13 +81,13 @@ export class DiscordManager extends Discord.Client {
 
       const command = args?.shift()?.toLowerCase();
       try {
-        if (!this.commands.has(command)) {
+        if (!this.commands?.has(command || '')) {
           await message.channel.send('No such command exists. Sorry!');
           return;
         }
-        await this.commands.get(command).execute(message);
-      } catch (error: any) {
-        logger.error(`Error during message:${error?.message}`);
+        await this.commands?.get(command || '')?.execute(message, args);
+      } catch (error) {
+        logger.error(`Error during message:${error}`);
         await message.reply(
           'An error occurred while attempting to execute command. Sumting Wong!'
         );
