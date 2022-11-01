@@ -20,9 +20,9 @@ export = [
     name: 'signup',
     description:
       'Register with stockbot and start playing with a simulate market!',
-    async execute(message: Message, args: string[]) {
+    async execute(message: Message, args?: string[]) {
       const messageResponse = await message.reply(asyncResponse('new account'));
-      if (args.length !== 0) {
+      if (args?.length !== 0) {
         await message.reply('This command takes NO arguments!');
         return;
       }

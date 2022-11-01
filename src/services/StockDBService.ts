@@ -12,7 +12,10 @@ const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
 async function GetUserData(userId: string): Promise<User | null> {
   try {
-    return await prismaClient.user.findFirst({ where: { discordId: userId } });
+    const user = await prismaClient?.user.findUnique({
+      where: { discordId: userId },
+    });
+    return user;
   } catch (error) {
     logger.error(error);
     return null;
@@ -118,6 +121,14 @@ export async function BuyStock(
   orderCount: number
 ): Promise<string> {
   const userData = await GetUserData(user.id);
+  await prismaClient.stock.upsert({
+    where: { symbol: quotesymbol },
+    update: {},
+    create: {
+      symbol: quotesymbol,
+      name: quotesymbol.toUpperCase(),
+    },
+  });
 
   if (!userData) {
     throw new Error('User is not valid. Sign up first.');
