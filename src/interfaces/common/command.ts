@@ -4,7 +4,7 @@ type Command = {
   name: string;
   description: string;
   // eslint-disable-next-line no-unused-vars
-  execute: (args: Message) => void;
+  execute: (message: Message, args?: string[]) => void;
 };
 
 export default Command;
