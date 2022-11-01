@@ -12,10 +12,9 @@ const finnhubClient = FinnhubService.getInstance(process.env.FINNHUB_API_KEY);
 
 async function GetUserData(userId: string): Promise<User | null> {
   try {
-    const user = await prismaClient?.user.findUnique({
+    return await prismaClient?.user.findUnique({
       where: { discordId: userId },
     });
-    return user;
   } catch (error) {
     logger.error(error);
     return null;
