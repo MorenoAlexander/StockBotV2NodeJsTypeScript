@@ -3,6 +3,7 @@ RUN mkdir /src
 WORKDIR /src
 COPY . /src
 RUN npm install
+RUN npm run generate
 RUN npm run build
 
 FROM stockbot-build
