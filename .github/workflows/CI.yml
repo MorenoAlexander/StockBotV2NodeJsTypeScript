@@ -43,7 +43,7 @@ jobs:
         run: npm install
       # Generate prisma files
       - name: prisma generate
-        run: npm run prisma:generate
+        run: npm run generate
 
       # run eslint
       - name: run eslint
