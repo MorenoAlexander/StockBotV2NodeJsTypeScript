@@ -1,4 +1,4 @@
-FROM --platform=arm node:16-slim AS stockbot-build
+FROM --platform=arm64 node:16-slim AS stockbot-build
 RUN apt-get update
 RUN apt-get install -y openssl
 RUN mkdir /src
