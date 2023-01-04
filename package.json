@@ -2,6 +2,7 @@
   "main": "dist/app.js",
   "scripts": {
     "dev": "nodemon dist/app.js",
+    "generate": "prisma generate",
     "watch": "tsc -w",
     "build": "tsc",
     "prod": "node dist/app.js",
