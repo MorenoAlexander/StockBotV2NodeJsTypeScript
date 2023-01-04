@@ -41,6 +41,9 @@ jobs:
       # Runs a single command using the runners shell
       - name: Install dependencies
         run: npm install
+      # Generate prisma files
+      - name: prisma generate
+        run: npm run prisma:generate
 
       # run eslint
       - name: run eslint
