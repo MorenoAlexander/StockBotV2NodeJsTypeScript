@@ -11,6 +11,10 @@ FROM stockbot-build
 RUN mkdir /app
 WORKDIR /app
 RUN cp -a /src/dist/. /app/
+RUN mkdir -p node_modules
+RUN mkdir -p node_modules/.prisma
+RUN mkdir -p node_modules/.prisma/client/
+RUN mkdir -p node_modules/@prisma
 RUN cp /src/package.json /app/package.json
 RUN cp -a /src/node_modules/.prisma/client/. /app/node_modules/.prisma/client/
 RUN cp -a /src/node_modules/@prisma/. /app/node_modules/@prisma/
