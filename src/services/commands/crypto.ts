@@ -1,4 +1,4 @@
-import { Message } from 'discord.js';
+import { Message, SlashCommandBuilder } from 'discord.js';
 import ICrypto from '../../interfaces/crypto/crypto';
 import { formatPercentage } from '../../utils/formatFunc';
 import logger from '../../utils/WinstonLogger';
@@ -6,8 +6,9 @@ import { BuyCrypto, GetCryptoQuote, SellCrypto } from '../CryptoDBService';
 
 export = [
   {
-    name: 'crypto',
-    description: 'get a quote for a crypto currency',
+    data: new SlashCommandBuilder()
+      .setName('crypto')
+      .setDescription('get a quote for a crypto currency'),
     async execute(message: Message, args: string[]) {
       if (args.length === 0) {
         await message.reply('PLEASE INCLUDE A CRYPTO SYMBOL');
@@ -26,8 +27,9 @@ export = [
     },
   },
   {
-    name: 'crypto-buy',
-    description: 'buy crypto currency',
+    data: new SlashCommandBuilder()
+      .setName('crypto-buy')
+      .setDescription('buy crypto currency'),
     async execute(message: Message, args: string[]) {
       try {
         const messageResponse = await message.reply(
