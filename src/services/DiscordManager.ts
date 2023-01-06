@@ -1,17 +1,21 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable import/no-dynamic-require */
-import Discord, { ClientOptions } from 'discord.js';
+import Discord, { ClientOptions, Collection, Events, Routes } from 'discord.js';
 import type { Application, Request, Response } from 'express';
 import fs from 'fs';
 import Command from '../interfaces/common/command';
 import logger from '../utils/WinstonLogger';
 
 export class DiscordManager extends Discord.Client {
-  commands: Discord.Collection<string, Command> | null;
+  commands: Collection<string, Command> | null;
 
   app!: Application;
 
-  public constructor(options: ClientOptions = {}) {
+  public constructor(
+    options: ClientOptions = {
+      intents: 0,
+    }
+  ) {
     super(options);
     this.commands = null;
 
@@ -28,8 +32,7 @@ export class DiscordManager extends Discord.Client {
   }
 
   collectCommands() {
-    this.commands = null;
-    this.commands = new Discord.Collection();
+    this.commands = new Collection();
 
     const commandFiles = fs
       .readdirSync(`${__dirname}/commands`)
@@ -41,7 +44,7 @@ export class DiscordManager extends Discord.Client {
       // eslint-disable-next-line global-require
       const commands: Command[] = require(`${__dirname}/commands/${file}`);
       commands.forEach((cmd) => {
-        this.commands?.set(cmd.name, cmd);
+        this.commands?.set(cmd.data.name, cmd);
       });
     });
   }
@@ -61,10 +64,6 @@ export class DiscordManager extends Discord.Client {
 
   setUp(app: Application) {
     this.app = app;
-
-    this.app.get('/tests', (_req: Request, res: Response) => {
-      res.send('<h1>DISCORD REGISTERED</h1>');
-    });
 
     this.on('message', async (message) => {
       let args = [];
@@ -94,8 +93,48 @@ export class DiscordManager extends Discord.Client {
       }
     });
 
+    this.on(Events.InteractionCreate, async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
+      logger.log('info', `Interaction: ${interaction.commandName}`);
+      const command = this.commands?.get(interaction.commandName);
+      if (!command) {
+        interaction.reply('No such command exists. Sorry!');
+        return;
+      }
+
+      try {
+        await command.execute(interaction);
+      } catch (error) {
+        console.error(error);
+        await interaction.reply({
+          content: 'There was an error while executing this command!',
+          ephemeral: true,
+        });
+      }
+    });
+
     return true;
   }
-}
 
+  registerCommands() {
+    try {
+      if (!process.env.DISCORD_ID) {
+        throw new Error('No Discord ID provided. Cannot register commands.');
+      }
+
+      if (!this.commands) {
+        throw new Error('No commands to register.');
+      }
+
+      const commandData = this.commands?.map((command) =>
+        command.data.toJSON()
+      );
+      this.rest.put(Routes.applicationCommands(process.env.DISCORD_ID || ''), {
+        body: commandData,
+      });
+    } catch (error) {
+      logger.error(`Error registering commands: ${error}`);
+    }
+  }
+}
 export default DiscordManager;

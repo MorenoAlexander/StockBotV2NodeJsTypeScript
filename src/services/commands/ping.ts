@@ -1,16 +1,14 @@
-import { Message } from 'discord.js';
+import { Message, SlashCommandBuilder } from 'discord.js';
 
 export = [
   {
-    name: 'ping',
-    description: 'Pong!',
+    data: new SlashCommandBuilder().setName('ping').setDescription('Pong!'),
     execute(message: Message) {
       message.channel.send('Pong.');
     },
   },
   {
-    name: 'pong',
-    description: 'Ping!',
+    data: new SlashCommandBuilder().setName('pong').setDescription('Ping!'),
     execute(message: Message) {
       message.channel.send('Ping!');
     },

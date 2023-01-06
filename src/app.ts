@@ -13,6 +13,10 @@ const app = express();
 // Discord class
 const discordManager = new DiscordManager();
 
+if (process.env.REGISTER_COMMANDS_ON_STARTUP === '1') {
+  discordManager.registerCommands();
+}
+
 /** Register middleware ********* */
 
 // Body parser

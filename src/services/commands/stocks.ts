@@ -1,4 +1,4 @@
-import { Message } from 'discord.js';
+import { Message, SlashCommandBuilder } from 'discord.js';
 import { formatNumber, formatPercentage } from '../../utils/formatFunc';
 import logger from '../../utils/WinstonLogger';
 import {
@@ -17,9 +17,11 @@ const asyncResponse = (action: string, preText = 'Fetching your') => {
 
 export = [
   {
-    name: 'signup',
-    description:
-      'Register with stockbot and start playing with a simulate market!',
+    data: new SlashCommandBuilder()
+      .setName('signup')
+      .setDescription(
+        'Register with stockbot and start playing with a simulate market!'
+      ),
     async execute(message: Message, args?: string[]) {
       const messageResponse = await message.reply(asyncResponse('new account'));
       if (args?.length !== 0) {
@@ -33,8 +35,7 @@ export = [
     },
   },
   {
-    name: 'stock',
-    description: 'test',
+    data: new SlashCommandBuilder().setName('stock').setDescription('test'),
     async execute(message: Message, args: string[]) {
       if (args.length === 0) {
         await message.reply('PLEASE INCLUDE A STOCK SYMBOL');
@@ -51,8 +52,9 @@ export = [
     },
   },
   {
-    name: 'balance',
-    description: "Gets user's current balance",
+    data: new SlashCommandBuilder()
+      .setName('balance')
+      .setDescription("Gets users's current balance"),
     async execute(message: Message) {
       const messageResponse = await message.reply(asyncResponse('balance'));
       const val = await GetBalance(message.author);
@@ -61,8 +63,9 @@ export = [
     },
   },
   {
-    name: 'portfolio',
-    description: 'calculates your portfolio value',
+    data: new SlashCommandBuilder()
+      .setName('portfolio')
+      .setDescription('calculates your portfolio value'),
     async execute(message: Message) {
       const messageResponse = await message.reply(asyncResponse('portfolio'));
 
@@ -71,8 +74,9 @@ export = [
     },
   },
   {
-    name: 'buy',
-    description: 'calculates your portfolio value',
+    data: new SlashCommandBuilder()
+      .setName('buy')
+      .setDescription('Buy stocks from the market'),
     async execute(message: Message, args: string[]) {
       const messageResponse = await message.reply(asyncResponse('stock'));
       const SYMBOL = args[0].toUpperCase();
@@ -86,8 +90,9 @@ export = [
     },
   },
   {
-    name: 'sell',
-    description: 'Sell a stock',
+    data: new SlashCommandBuilder()
+      .setName('sell')
+      .setDescription('Sell a stock'),
     async execute(message: Message, args: string[]) {
       try {
         const messageResponse = await message.reply(asyncResponse('SellOrder'));
@@ -103,8 +108,9 @@ export = [
     },
   },
   {
-    name: 'list',
-    description: 'Lists the stocks/crypto in your portfolio',
+    data: new SlashCommandBuilder()
+      .setName('list')
+      .setDescription('List the stocks/crypo in your portfolio'),
     async execute(message: Message) {
       try {
         const messageResponse = await message.reply(
