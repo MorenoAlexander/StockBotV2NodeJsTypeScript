@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable import/no-dynamic-require */
 import Discord, { ClientOptions, Collection, Events, Routes } from 'discord.js';
-import type { Application, Request, Response } from 'express';
+import type { Application } from 'express';
 import fs from 'fs';
 import Command from '../interfaces/common/command';
 import logger from '../utils/WinstonLogger';

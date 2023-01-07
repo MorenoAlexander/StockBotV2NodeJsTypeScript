@@ -1,4 +1,5 @@
 import { Message, SlashCommandBuilder } from 'discord.js';
+import Command from '../../interfaces/common/command';
 import { formatNumber, formatPercentage } from '../../utils/formatFunc';
 import logger from '../../utils/WinstonLogger';
 import {
@@ -92,8 +93,20 @@ export = [
   {
     data: new SlashCommandBuilder()
       .setName('sell')
-      .setDescription('Sell a stock'),
-    async execute(message: Message, args: string[]) {
+      .setDescription('Sell a stock')
+      .addStringOption((option) =>
+        option
+          .setName('symbol')
+          .setDescription('The stocker ticker to sell')
+          .setRequired(true)
+      )
+      .addStringOption((option) =>
+        option
+          .setName('quantity')
+          .setDescription('The quanity of stocks to sell')
+          .setRequired(true)
+      ),
+    async execute(interaction) {
       try {
         const messageResponse = await message.reply(asyncResponse('SellOrder'));
         const SYMBOL = args[0].toUpperCase();
@@ -111,17 +124,15 @@ export = [
     data: new SlashCommandBuilder()
       .setName('list')
       .setDescription('List the stocks/crypo in your portfolio'),
-    async execute(message: Message) {
+    async execute(interaction) {
       try {
-        const messageResponse = await message.reply(
-          asyncResponse(asyncResponse('stock list'))
-        );
-        const result = await ListStock(message.author);
-        await messageResponse.edit(result);
+        await interaction.reply('Getting your stock list...');
+        const result = await ListStock(interaction.user);
+        await interaction.editReply(result);
       } catch (e: unknown) {
         logger.info(`Error while listing stocks: ${e}`);
         throw e;
       }
     },
   },
-];
+] as Command[];

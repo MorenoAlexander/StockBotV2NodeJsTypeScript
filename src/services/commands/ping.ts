@@ -1,16 +1,17 @@
-import { Message, SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
+import Command from '../../interfaces/common/command';
 
 export = [
   {
     data: new SlashCommandBuilder().setName('ping').setDescription('Pong!'),
-    execute(message: Message) {
-      message.channel.send('Pong.');
+    execute(interaction) {
+      interaction.reply('Pong.');
     },
   },
   {
     data: new SlashCommandBuilder().setName('pong').setDescription('Ping!'),
-    execute(message: Message) {
-      message.channel.send('Ping!');
+    execute(interaction) {
+      interaction.reply('Ping!');
     },
   },
-];
+] as Command[];
