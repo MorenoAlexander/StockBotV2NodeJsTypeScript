@@ -1,4 +1,4 @@
-import { Message, SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { z } from 'zod';
 import Command from '../../interfaces/common/command';
 import { formatNumber, formatPercentage } from '../../utils/formatFunc';
@@ -24,16 +24,12 @@ export = [
       .setDescription(
         'Register with stockbot and start playing with a simulate market!'
       ),
-    async execute(message: Message, args?: string[]) {
-      const messageResponse = await message.reply(asyncResponse('new account'));
-      if (args?.length !== 0) {
-        await message.reply('This command takes NO arguments!');
-        return;
-      }
+    async execute(interaction) {
+      await interaction.reply(asyncResponse('new account'));
 
-      const Result = await SignUp(message.author);
+      const Result = await SignUp(interaction.user);
 
-      await messageResponse.edit(Result);
+      await interaction.editReply(Result);
     },
   },
   {
@@ -48,6 +44,7 @@ export = [
       ),
     async execute(interaction) {
       try {
+        await interaction.deferReply();
         const SYMBOL = z
           .string()
           .min(1)
@@ -55,7 +52,7 @@ export = [
           .parse(interaction.options.getString('symbol'));
 
         const data = await GetQuote(SYMBOL);
-        await interaction.reply(
+        await interaction.editReply(
           `${SYMBOL}: $${data.c} ${formatPercentage(
             ((data.c - data.pc) / data.pc) * 100
           )}`
@@ -71,10 +68,14 @@ export = [
       .setName('balance')
       .setDescription("Gets users's current balance"),
     async execute(interaction) {
-      await interaction.reply(asyncResponse('balance'));
-      const val = await GetBalance(interaction.user);
+      try {
+        await interaction.reply('Fetching your balance...');
+        const val = await GetBalance(interaction.user);
 
-      await interaction.editReply(formatNumber(val));
+        await interaction.editReply(formatNumber(val));
+      } catch (e: unknown) {
+        logger.error(`Error while getting user balance: ${e}`);
+      }
     },
   },
   {
@@ -82,8 +83,16 @@ export = [
       .setName('portfolio')
       .setDescription('calculates your portfolio value'),
     async execute(interaction) {
-      const result = await CalculatePortforlio(interaction.user);
-      await interaction.reply(result);
+      try {
+        await interaction.reply('Calculating your portfolio...');
+        const result = await CalculatePortforlio(interaction.user);
+        await interaction.editReply(result);
+      } catch (e: unknown) {
+        logger.error(`Error calculating portfolio: ${e}`);
+        await interaction.editReply(
+          'Error calculating portfolio... Please try again later'
+        );
+      }
     },
   },
   {
@@ -103,22 +112,36 @@ export = [
           .setRequired(true)
       ),
     execute: async (interaction) => {
-      await interaction.reply(asyncResponse('stock'));
-      const SYMBOL = z
-        .string()
-        .min(1)
-        .transform((v) => v.toUpperCase())
-        .parse(interaction.options.getString('symbol'));
-      const quantity = z
-        .number()
-        .positive()
-        .parse(parseInt(interaction.options.getString('quantity') || '1', 10));
+      try {
+        await interaction.reply('Buying your stock...');
+        const SYMBOL = z
+          .string()
+          .min(1)
+          .transform((v) => v.toUpperCase())
+          .parse(interaction.options.getString('symbol'));
+        const quantity = z
+          .number()
+          .positive()
+          .parse(
+            parseInt(interaction.options.getString('quantity') || '1', 10)
+          );
 
-      const quote = await GetQuote(SYMBOL);
+        const quote = await GetQuote(SYMBOL);
 
-      const result = await BuyStock(interaction.user, quote, SYMBOL, quantity);
+        const result = await BuyStock(
+          interaction.user,
+          quote,
+          SYMBOL,
+          quantity
+        );
 
-      await interaction.editReply(result);
+        await interaction.editReply(result);
+      } catch (e: unknown) {
+        logger.error(`Error while buying stocl: ${e}`);
+        await interaction.editReply(
+          'Error while buying your stock... Please try again later.'
+        );
+      }
     },
   },
   {
@@ -157,6 +180,7 @@ export = [
 
         await interaction.editReply(result);
       } catch (e: unknown) {
+        await interaction.editReply('Error occurred while selling your stock');
         logger.error(e);
         throw e;
       }
