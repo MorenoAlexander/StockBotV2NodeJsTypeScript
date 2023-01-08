@@ -19,6 +19,7 @@ export = [
       ),
     execute: async (interaction) => {
       try {
+        await interaction.deferReply();
         const SYMBOL = z
           .string()
           .min(1)
@@ -27,7 +28,7 @@ export = [
           .parse(interaction.options.getString('symbol'));
 
         GetCryptoQuote(SYMBOL).then((data: ICrypto) => {
-          interaction.reply(
+          interaction.editReply(
             `${SYMBOL}: $${data.c} ${formatPercentage(
               (((data.c as number) - (data.o as number)) / (data.o as number)) *
                 100
@@ -36,6 +37,9 @@ export = [
         });
       } catch (error) {
         logger.error(error);
+        await interaction.editReply(
+          '`Error getting crypto currency quote... Please try again later.'
+        );
       }
     },
   },
@@ -75,7 +79,10 @@ export = [
           await BuyCrypto(interaction.user, quantity, SYMBOL)
         );
       } catch (e) {
-        logger.error(e);
+        logger.error(`Error buying crypto currency: ${JSON.stringify(e)}`);
+        await interaction.editReply(
+          'Error buying crypto currency... Please try again later.'
+        );
       }
     },
   },
