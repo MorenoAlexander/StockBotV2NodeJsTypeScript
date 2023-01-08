@@ -1,7 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { z } from 'zod';
 import Command from '../../interfaces/common/command';
-import ICrypto from '../../interfaces/crypto/crypto';
 import { formatPercentage } from '../../utils/formatFunc';
 import logger from '../../utils/WinstonLogger';
 import { BuyCrypto, GetCryptoQuote, SellCrypto } from '../CryptoDBService';
