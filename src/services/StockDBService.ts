@@ -72,10 +72,12 @@ export async function SignUp(user: DiscordUser): Promise<string> {
     dm.send(
       'You seem to be already signed up. This action will reset your account, are you sure?. Please respond with Y/N.'
     );
-    dm.awaitMessages((m) => /[yYnN]/.test(m.content) && !m.author.bot, {
+    dm.awaitMessages({
       max: 1,
       errors: ['time'],
       time: 60000,
+      filter: (m) =>
+        m.author.id === user.id && !m.author.bot && /[yYnN]/.test(m.content),
     })
       .then(async (collected) => {
         if (collected.first()?.content.startsWith('Y')) {
@@ -212,8 +214,8 @@ export async function SellStock(
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
     )}/sh for a total of ${formatNumber(credit)}!`;
-  } catch (e: any) {
-    logger.error(e.message);
+  } catch (e: unknown) {
+    logger.error(`Error while selling stocks: ${JSON.stringify(e)}`);
     return 'Error';
   }
 }

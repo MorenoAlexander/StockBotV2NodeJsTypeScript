@@ -1,9 +1,10 @@
-import { Message } from 'discord.js';
+import { Message, SlashCommandBuilder } from 'discord.js';
 
 export = [
   {
-    name: 'version',
-    description: 'returns the current version of Stock Bot',
+    data: new SlashCommandBuilder()
+      .setName('version')
+      .setDescription('returns the current version of Stock Bot'),
     execute(message: Message) {
       return message.channel.send(
         `VERSION: ${process.env.VERSION}, DATE: ${process.env.DATE}`
