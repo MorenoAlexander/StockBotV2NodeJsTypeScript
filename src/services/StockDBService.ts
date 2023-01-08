@@ -75,9 +75,8 @@ export async function SignUp(user: DiscordUser): Promise<string> {
     dm.awaitMessages({
       max: 1,
       errors: ['time'],
-      time: 60000,
-      filter: (m) =>
-        m.author.id === user.id && !m.author.bot && /[yYnN]/.test(m.content),
+      time: 60_000,
+      filter: (m) => m.author.id === user.id && /[yYnN]/.test(m.content),
     })
       .then(async (collected) => {
         if (collected.first()?.content.startsWith('Y')) {
