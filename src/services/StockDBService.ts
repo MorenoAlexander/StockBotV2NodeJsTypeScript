@@ -214,8 +214,8 @@ export async function SellStock(
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
     )}/sh for a total of ${formatNumber(credit)}!`;
-  } catch (e: any) {
-    logger.error(e.message);
+  } catch (e: unknown) {
+    logger.error(`Error while selling stocks: ${JSON.stringify(e)}`);
     return 'Error';
   }
 }
