@@ -27,14 +27,14 @@ export = [
           .transform((val) => val.toUpperCase())
           .parse(interaction.options.getString('symbol'));
 
-        GetCryptoQuote(SYMBOL).then((data: ICrypto) => {
-          interaction.editReply(
-            `${SYMBOL}: $${data.c} ${formatPercentage(
-              (((data.c as number) - (data.o as number)) / (data.o as number)) *
-                100
-            )}`
-          );
-        });
+        const data = await GetCryptoQuote(SYMBOL);
+
+        interaction.editReply(
+          `${SYMBOL}: $${data.c} ${formatPercentage(
+            (((data.c as number) - (data.o as number)) / (data.o as number)) *
+              100
+          )}`
+        );
       } catch (error) {
         logger.error(error);
         await interaction.editReply(
