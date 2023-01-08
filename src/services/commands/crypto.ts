@@ -29,6 +29,8 @@ export = [
 
         const data = await GetCryptoQuote(SYMBOL);
 
+        logger.info(JSON.stringify(data));
+
         interaction.editReply(
           `${SYMBOL}: $${data.c} ${formatPercentage(
             (((data.c as number) - (data.o as number)) / (data.o as number)) *
