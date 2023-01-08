@@ -65,33 +65,33 @@ export class DiscordManager extends Discord.Client {
   setUp(app: Application) {
     this.app = app;
 
-    this.on('message', async (message) => {
-      let args = [];
-      if (
-        !message.content.startsWith(process.env.PREFIX as string) ||
-        message.author.bot
-      )
-        return;
+    // this.on('message', async (message) => {
+    //   let args = [];
+    //   if (
+    //     !message.content.startsWith(process.env.PREFIX as string) ||
+    //     message.author.bot
+    //   )
+    //     return;
 
-      args = message.content
-        .slice((process.env.PREFIX as string).length)
-        .trim()
-        .split(/ +/);
+    //   args = message.content
+    //     .slice((process.env.PREFIX as string).length)
+    //     .trim()
+    //     .split(/ +/);
 
-      const command = args?.shift()?.toLowerCase();
-      try {
-        if (!this.commands?.has(command || '')) {
-          await message.channel.send('No such command exists. Sorry!');
-          return;
-        }
-        await this.commands?.get(command || '')?.execute(message, args);
-      } catch (error) {
-        logger.error(`Error during message:${error}`);
-        await message.reply(
-          'An error occurred while attempting to execute command. Sumting Wong!'
-        );
-      }
-    });
+    //   const command = args?.shift()?.toLowerCase();
+    //   try {
+    //     if (!this.commands?.has(command || '')) {
+    //       await message.channel.send('No such command exists. Sorry!');
+    //       return;
+    //     }
+    //     await this.commands?.get(command || '')?.execute(message, args);
+    //   } catch (error) {
+    //     logger.error(`Error during message:${error}`);
+    //     await message.reply(
+    //       'An error occurred while attempting to execute command. Sumting Wong!'
+    //     );
+    //   }
+    // });
 
     this.on(Events.InteractionCreate, async (interaction) => {
       if (!interaction.isChatInputCommand()) return;
@@ -105,10 +105,10 @@ export class DiscordManager extends Discord.Client {
       try {
         await command.execute(interaction);
       } catch (error) {
-        console.error(error);
-        await interaction.reply({
+        logger.error(error);
+        await interaction.channel?.send({
           content: 'There was an error while executing this command!',
-          ephemeral: true,
+          isMessage: true,
         });
       }
     });

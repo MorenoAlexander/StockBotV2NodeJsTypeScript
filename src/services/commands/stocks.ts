@@ -1,4 +1,5 @@
 import { Message, SlashCommandBuilder } from 'discord.js';
+import { z } from 'zod';
 import Command from '../../interfaces/common/command';
 import { formatNumber, formatPercentage } from '../../utils/formatFunc';
 import logger from '../../utils/WinstonLogger';
@@ -36,58 +37,88 @@ export = [
     },
   },
   {
-    data: new SlashCommandBuilder().setName('stock').setDescription('test'),
-    async execute(message: Message, args: string[]) {
-      if (args.length === 0) {
-        await message.reply('PLEASE INCLUDE A STOCK SYMBOL');
-        return;
-      }
-      const SYMBOL = args[0].toUpperCase();
+    data: new SlashCommandBuilder()
+      .setName('stock')
+      .setDescription('Get a quote for a stock')
+      .addStringOption((option) =>
+        option
+          .setName('symbol')
+          .setDescription('stock symbol')
+          .setRequired(true)
+      ),
+    async execute(interaction) {
+      try {
+        const SYMBOL = z
+          .string()
+          .min(1)
+          .transform((v) => v.toUpperCase())
+          .parse(interaction.options.getString('symbol'));
 
-      const data = await GetQuote(SYMBOL);
-      await message.channel.send(
-        `${SYMBOL}: $${data.c} ${formatPercentage(
-          ((data.c - data.pc) / data.pc) * 100
-        )}`
-      );
+        const data = await GetQuote(SYMBOL);
+        await interaction.reply(
+          `${SYMBOL}: $${data.c} ${formatPercentage(
+            ((data.c - data.pc) / data.pc) * 100
+          )}`
+        );
+      } catch (error) {
+        interaction.reply('Error getting quote');
+        logger.error(error);
+      }
     },
   },
   {
     data: new SlashCommandBuilder()
       .setName('balance')
       .setDescription("Gets users's current balance"),
-    async execute(message: Message) {
-      const messageResponse = await message.reply(asyncResponse('balance'));
-      const val = await GetBalance(message.author);
+    async execute(interaction) {
+      await interaction.reply(asyncResponse('balance'));
+      const val = await GetBalance(interaction.user);
 
-      await messageResponse.edit(formatNumber(val));
+      await interaction.editReply(formatNumber(val));
     },
   },
   {
     data: new SlashCommandBuilder()
       .setName('portfolio')
       .setDescription('calculates your portfolio value'),
-    async execute(message: Message) {
-      const messageResponse = await message.reply(asyncResponse('portfolio'));
-
-      const result = await CalculatePortforlio(message.author);
-      await messageResponse.edit(result);
+    async execute(interaction) {
+      const result = await CalculatePortforlio(interaction.user);
+      await interaction.reply(result);
     },
   },
   {
     data: new SlashCommandBuilder()
       .setName('buy')
-      .setDescription('Buy stocks from the market'),
-    async execute(message: Message, args: string[]) {
-      const messageResponse = await message.reply(asyncResponse('stock'));
-      const SYMBOL = args[0].toUpperCase();
-      const quantity = parseInt(args[1], 10);
+      .setDescription('Buy stocks from the market')
+      .addStringOption((option) =>
+        option
+          .setName('symbol')
+          .setDescription('The stock ticker to buy')
+          .setRequired(true)
+      )
+      .addStringOption((input) =>
+        input
+          .setName('quantity')
+          .setDescription('The quantity of stocks to buy')
+          .setRequired(true)
+      ),
+    execute: async (interaction) => {
+      await interaction.reply(asyncResponse('stock'));
+      const SYMBOL = z
+        .string()
+        .min(1)
+        .transform((v) => v.toUpperCase())
+        .parse(interaction.options.getString('symbol'));
+      const quantity = z
+        .number()
+        .positive()
+        .parse(parseInt(interaction.options.getString('quantity') || '1', 10));
 
       const quote = await GetQuote(SYMBOL);
 
-      const result = await BuyStock(message.author, quote, SYMBOL, quantity);
+      const result = await BuyStock(interaction.user, quote, SYMBOL, quantity);
 
-      await messageResponse.edit(result);
+      await interaction.editReply(result);
     },
   },
   {
@@ -108,12 +139,23 @@ export = [
       ),
     async execute(interaction) {
       try {
-        const messageResponse = await message.reply(asyncResponse('SellOrder'));
-        const SYMBOL = args[0].toUpperCase();
-        const quantity = parseInt(args[1], 10);
-        const result = await SellStock(message.author, SYMBOL, quantity);
+        await interaction.reply(`Processing your Sell order...`);
+        const SYMBOL = z
+          .string()
+          .min(1)
+          .transform((v) => v.toUpperCase())
+          .parse(interaction.options.getString('symbol'));
 
-        await messageResponse.edit(result);
+        const quantity = z
+          .number()
+          .positive()
+          .parse(
+            parseInt(interaction.options.getString('quantity') || '0', 10)
+          );
+
+        const result = await SellStock(interaction.user, SYMBOL, quantity);
+
+        await interaction.editReply(result);
       } catch (e: unknown) {
         logger.error(e);
         throw e;
