@@ -76,9 +76,10 @@ export async function SignUp(user: DiscordUser): Promise<string> {
       max: 1,
       errors: ['time'],
       time: 60_000,
-      filter: (m) => m.author.id === user.id && /[yYnN]/.test(m.content),
+      filter: (m) => m.author.id === user.id,
     })
       .then(async (collected) => {
+        logger.info(`collected: ${JSON.stringify(collected)}`);
         if (collected.first()?.content.startsWith('Y')) {
           try {
             await prismaClient.stockLot.deleteMany({

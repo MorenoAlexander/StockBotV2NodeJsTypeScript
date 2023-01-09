@@ -13,7 +13,7 @@ export class DiscordManager extends Discord.Client {
 
   public constructor(
     options: ClientOptions = {
-      intents: 0,
+      intents: ['DirectMessages', 'Guilds', 'GuildMessages'],
     }
   ) {
     super(options);
