@@ -1,4 +1,6 @@
-import { Message } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
+import { z } from 'zod';
+import Command from '../../interfaces/common/command';
 import { formatNumber, formatPercentage } from '../../utils/formatFunc';
 import logger from '../../utils/WinstonLogger';
 import {
@@ -17,105 +19,186 @@ const asyncResponse = (action: string, preText = 'Fetching your') => {
 
 export = [
   {
-    name: 'signup',
-    description:
-      'Register with stockbot and start playing with a simulate market!',
-    async execute(message: Message, args?: string[]) {
-      const messageResponse = await message.reply(asyncResponse('new account'));
-      if (args?.length !== 0) {
-        await message.reply('This command takes NO arguments!');
-        return;
-      }
+    data: new SlashCommandBuilder()
+      .setName('signup')
+      .setDescription(
+        'Register with stockbot and start playing with a simulate market!'
+      ),
+    async execute(interaction) {
+      await interaction.reply(asyncResponse('new account'));
 
-      const Result = await SignUp(message.author);
+      const Result = await SignUp(interaction.user);
 
-      await messageResponse.edit(Result);
+      await interaction.editReply(Result);
     },
   },
   {
-    name: 'stock',
-    description: 'test',
-    async execute(message: Message, args: string[]) {
-      if (args.length === 0) {
-        await message.reply('PLEASE INCLUDE A STOCK SYMBOL');
-        return;
-      }
-      const SYMBOL = args[0].toUpperCase();
-
-      const data = await GetQuote(SYMBOL);
-      await message.channel.send(
-        `${SYMBOL}: $${data.c} ${formatPercentage(
-          ((data.c - data.pc) / data.pc) * 100
-        )}`
-      );
-    },
-  },
-  {
-    name: 'balance',
-    description: "Gets user's current balance",
-    async execute(message: Message) {
-      const messageResponse = await message.reply(asyncResponse('balance'));
-      const val = await GetBalance(message.author);
-
-      await messageResponse.edit(formatNumber(val));
-    },
-  },
-  {
-    name: 'portfolio',
-    description: 'calculates your portfolio value',
-    async execute(message: Message) {
-      const messageResponse = await message.reply(asyncResponse('portfolio'));
-
-      const result = await CalculatePortforlio(message.author);
-      await messageResponse.edit(result);
-    },
-  },
-  {
-    name: 'buy',
-    description: 'calculates your portfolio value',
-    async execute(message: Message, args: string[]) {
-      const messageResponse = await message.reply(asyncResponse('stock'));
-      const SYMBOL = args[0].toUpperCase();
-      const quantity = parseInt(args[1], 10);
-
-      const quote = await GetQuote(SYMBOL);
-
-      const result = await BuyStock(message.author, quote, SYMBOL, quantity);
-
-      await messageResponse.edit(result);
-    },
-  },
-  {
-    name: 'sell',
-    description: 'Sell a stock',
-    async execute(message: Message, args: string[]) {
+    data: new SlashCommandBuilder()
+      .setName('stock')
+      .setDescription('Get a quote for a stock')
+      .addStringOption((option) =>
+        option
+          .setName('symbol')
+          .setDescription('stock symbol')
+          .setRequired(true)
+      ),
+    async execute(interaction) {
       try {
-        const messageResponse = await message.reply(asyncResponse('SellOrder'));
-        const SYMBOL = args[0].toUpperCase();
-        const quantity = parseInt(args[1], 10);
-        const result = await SellStock(message.author, SYMBOL, quantity);
+        await interaction.deferReply();
+        const SYMBOL = z
+          .string()
+          .min(1)
+          .transform((v) => v.toUpperCase())
+          .parse(interaction.options.getString('symbol'));
 
-        await messageResponse.edit(result);
+        const data = await GetQuote(SYMBOL);
+        await interaction.editReply(
+          `${SYMBOL}: $${data.c} ${formatPercentage(
+            ((data.c - data.pc) / data.pc) * 100
+          )}`
+        );
+      } catch (error) {
+        interaction.reply('Error getting quote');
+        logger.error(error);
+      }
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName('balance')
+      .setDescription("Gets users's current balance"),
+    async execute(interaction) {
+      try {
+        await interaction.reply('Fetching your balance...');
+        const val = await GetBalance(interaction.user);
+
+        await interaction.editReply(formatNumber(val));
       } catch (e: unknown) {
+        logger.error(`Error while getting user balance: ${e}`);
+      }
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName('portfolio')
+      .setDescription('calculates your portfolio value'),
+    async execute(interaction) {
+      try {
+        await interaction.reply('Calculating your portfolio...');
+        const result = await CalculatePortforlio(interaction.user);
+        await interaction.editReply(result);
+      } catch (e: unknown) {
+        logger.error(`Error calculating portfolio: ${e}`);
+        await interaction.editReply(
+          'Error calculating portfolio... Please try again later'
+        );
+      }
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName('buy')
+      .setDescription('Buy stocks from the market')
+      .addStringOption((option) =>
+        option
+          .setName('symbol')
+          .setDescription('The stock ticker to buy')
+          .setRequired(true)
+      )
+      .addStringOption((input) =>
+        input
+          .setName('quantity')
+          .setDescription('The quantity of stocks to buy')
+          .setRequired(true)
+      ),
+    execute: async (interaction) => {
+      try {
+        await interaction.reply('Buying your stock...');
+        const SYMBOL = z
+          .string()
+          .min(1)
+          .transform((v) => v.toUpperCase())
+          .parse(interaction.options.getString('symbol'));
+        const quantity = z
+          .number()
+          .positive()
+          .parse(
+            parseInt(interaction.options.getString('quantity') || '1', 10)
+          );
+
+        const quote = await GetQuote(SYMBOL);
+
+        const result = await BuyStock(
+          interaction.user,
+          quote,
+          SYMBOL,
+          quantity
+        );
+
+        await interaction.editReply(result);
+      } catch (e: unknown) {
+        logger.error(`Error while buying stocl: ${e}`);
+        await interaction.editReply(
+          'Error while buying your stock... Please try again later.'
+        );
+      }
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName('sell')
+      .setDescription('Sell a stock')
+      .addStringOption((option) =>
+        option
+          .setName('symbol')
+          .setDescription('The stocker ticker to sell')
+          .setRequired(true)
+      )
+      .addStringOption((option) =>
+        option
+          .setName('quantity')
+          .setDescription('The quanity of stocks to sell')
+          .setRequired(true)
+      ),
+    async execute(interaction) {
+      try {
+        await interaction.reply(`Processing your Sell order...`);
+        const SYMBOL = z
+          .string()
+          .min(1)
+          .transform((v) => v.toUpperCase())
+          .parse(interaction.options.getString('symbol'));
+
+        const quantity = z
+          .number()
+          .positive()
+          .parse(
+            parseInt(interaction.options.getString('quantity') || '0', 10)
+          );
+
+        const result = await SellStock(interaction.user, SYMBOL, quantity);
+
+        await interaction.editReply(result);
+      } catch (e: unknown) {
+        await interaction.editReply('Error occurred while selling your stock');
         logger.error(e);
         throw e;
       }
     },
   },
   {
-    name: 'list',
-    description: 'Lists the stocks/crypto in your portfolio',
-    async execute(message: Message) {
+    data: new SlashCommandBuilder()
+      .setName('list')
+      .setDescription('List the stocks/crypo in your portfolio'),
+    async execute(interaction) {
       try {
-        const messageResponse = await message.reply(
-          asyncResponse(asyncResponse('stock list'))
-        );
-        const result = await ListStock(message.author);
-        await messageResponse.edit(result);
+        await interaction.reply('Getting your stock list...');
+        const result = await ListStock(interaction.user);
+        await interaction.editReply(result);
       } catch (e: unknown) {
         logger.info(`Error while listing stocks: ${e}`);
         throw e;
       }
     },
   },
-];
+] as Command[];

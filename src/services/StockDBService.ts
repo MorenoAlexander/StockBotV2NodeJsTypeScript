@@ -72,12 +72,14 @@ export async function SignUp(user: DiscordUser): Promise<string> {
     dm.send(
       'You seem to be already signed up. This action will reset your account, are you sure?. Please respond with Y/N.'
     );
-    dm.awaitMessages((m) => /[yYnN]/.test(m.content) && !m.author.bot, {
+    dm.awaitMessages({
       max: 1,
       errors: ['time'],
-      time: 60000,
+      time: 60_000,
+      filter: (m) => m.author.id === user.id,
     })
       .then(async (collected) => {
+        logger.info(`collected: ${JSON.stringify(collected)}`);
         if (collected.first()?.content.startsWith('Y')) {
           try {
             await prismaClient.stockLot.deleteMany({
@@ -212,8 +214,8 @@ export async function SellStock(
     return `Sold ${stocksSold} shares of ${quotesymbol} @ ${formatNumber(
       quote.c
     )}/sh for a total of ${formatNumber(credit)}!`;
-  } catch (e: any) {
-    logger.error(e.message);
+  } catch (e: unknown) {
+    logger.error(`Error while selling stocks: ${JSON.stringify(e)}`);
     return 'Error';
   }
 }

@@ -33,6 +33,10 @@ app.listen(process.env.PORT, async () => {
 
   discordManager.setUp(app);
   discordManager.logIn(process.env.DISCORD_KEY as string);
+
+  if (process.env.REGISTER_COMMANDS_ON_STARTUP === '1') {
+    discordManager.registerCommands();
+  }
 });
 
 app.get('/', (req, res) => {

@@ -1,10 +1,12 @@
-import type { Message } from 'discord.js';
+import type {
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
+} from 'discord.js';
 
 type Command = {
-  name: string;
-  description: string;
+  data: SlashCommandBuilder;
   // eslint-disable-next-line no-unused-vars
-  execute: (message: Message, args?: string[]) => void;
+  execute: (message: ChatInputCommandInteraction) => void | Promise<void>;
 };
 
 export default Command;
