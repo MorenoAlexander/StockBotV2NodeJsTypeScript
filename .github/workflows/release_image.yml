@@ -44,7 +44,7 @@ jobs:
         name: Build and push master
         id: docker_build_master
         if: startsWith(github.ref,'refs/tags/v') == false
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/stockbotv2:latest
@@ -53,7 +53,7 @@ jobs:
         name: Build and push tag
         if: startsWith(github.ref,'refs/tags/v')
         id: docker_build_tag
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
