@@ -1,0 +1,6 @@
+{
+  "sonarlint.connectedMode.project": {
+    "connectionId": "https-sonarqube-alexandermoreno-com",
+    "projectKey": "MorenoAlexander_StockBotV2NodeJsTypeScript_AYF4YTAzOXwqmKfuWSz1"
+  }
+}
